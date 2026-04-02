@@ -1,0 +1,127 @@
+import { create } from "zustand";
+import { runScan } from "../services/scan-service";
+import { FigmaClient } from "../figma/figma-client";
+import { runParityCheck } from "../services/parity-checker";
+import { db } from "../services/db";
+import type { ScanResult } from "../types/component";
+import type { FigmaComponent } from "../types/figma";
+import type { ParityReport } from "../types/parity";
+
+interface AuditStore {
+  isScanning: boolean;
+  progress: number;
+  progressLabel: string;
+  results: ScanResult | null;
+  figmaComponents: FigmaComponent[];
+  parityReport: ParityReport | null;
+  figmaError: string | null;
+  error: string | null;
+  startScan: () => Promise<void>;
+  clearResults: () => void;
+}
+
+function getStoredFigmaCredentials(): {
+  token: string;
+  fileKey: string;
+} | null {
+  try {
+    const stored = localStorage.getItem("ds-audit-onboarding");
+    const state = stored ? JSON.parse(stored)?.state : null;
+    if (state?.figmaToken && state?.figmaFileKey) {
+      return { token: state.figmaToken, fileKey: state.figmaFileKey };
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return null;
+}
+
+export const useAuditStore = create<AuditStore>((set) => ({
+  isScanning: false,
+  progress: 0,
+  progressLabel: "",
+  results: null,
+  figmaComponents: [],
+  parityReport: null,
+  figmaError: null,
+  error: null,
+
+  startScan: async () => {
+    set({
+      isScanning: true,
+      progress: 10,
+      progressLabel: "Scanning Nucleus components...",
+      error: null,
+      figmaError: null,
+    });
+
+    try {
+      // Step 1: Scan code
+      const results = await runScan();
+      set({
+        results,
+        progress: 60,
+        progressLabel: "Fetching Figma library...",
+      });
+
+      // Step 2: Fetch Figma (non-blocking — failure doesn't fail the whole scan)
+      const creds = getStoredFigmaCredentials();
+      if (creds) {
+        try {
+          const client = new FigmaClient(creds.token, creds.fileKey);
+          const figmaComponents = await client.fetchComponents();
+          set({
+            figmaComponents,
+            progress: 75,
+            progressLabel: "Running parity check...",
+          });
+
+          // Step 3: Run parity check
+          const parityReport = await runParityCheck(
+            results.components,
+            figmaComponents,
+          );
+
+          set({
+            parityReport,
+            progress: 90,
+            progressLabel: "Saving results...",
+          });
+
+          // Persist scan result to IndexedDB
+          await db.scanResults.add({
+            ...results,
+            id: undefined,
+          });
+        } catch (figmaErr) {
+          set({
+            figmaError:
+              figmaErr instanceof Error
+                ? figmaErr.message
+                : "Could not fetch Figma data",
+          });
+        }
+      }
+
+      set({ isScanning: false, progress: 100, progressLabel: "" });
+    } catch (error) {
+      set({
+        isScanning: false,
+        progress: 0,
+        progressLabel: "",
+        error: error instanceof Error ? error.message : "Scan failed",
+      });
+    }
+  },
+
+  clearResults: () =>
+    set({
+      results: null,
+      figmaComponents: [],
+      parityReport: null,
+      progress: 0,
+      progressLabel: "",
+      error: null,
+      figmaError: null,
+    }),
+}));
