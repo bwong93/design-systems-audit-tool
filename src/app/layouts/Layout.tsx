@@ -31,7 +31,7 @@ export default function Layout() {
             <NavLink
               to="/parity"
               icon={<GitCompare size={20} />}
-              label="Figma Parity"
+              label="DS Parity"
             />
             <NavLink
               to="/accessibility"

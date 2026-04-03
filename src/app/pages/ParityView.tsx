@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   GitCompare,
   AlertTriangle,
@@ -8,15 +8,15 @@ import {
   XCircle,
   Undo2,
   ExternalLink,
-  HelpCircle,
-  Link2Off,
-  Wrench,
+  Flag,
+  Info,
 } from "lucide-react";
 import { figmaLink, githubLink } from "../../utils/links";
 import { useAuditStore } from "../../stores/audit-store";
 import { useOnboardingStore } from "../../stores/onboarding-store";
 import { getGradeColor, getGradeDot } from "../../services/score-calculator";
-import { db } from "../../services/db";
+import { runParityCheck } from "../../services/parity-checker";
+import { db, type VisualFlag } from "../../services/db";
 import type {
   ComponentParityResult,
   ParityIssue,
@@ -51,9 +51,21 @@ const DRIFT_REASONS: {
   },
 ];
 
+async function rerunParity() {
+  const { results, figmaComponents } = useAuditStore.getState();
+  if (!results || !figmaComponents.length) return;
+  const report = await runParityCheck(results.components, figmaComponents);
+  useAuditStore.setState({ parityReport: report });
+}
+
 export default function ParityView() {
-  const { parityReport, results } = useAuditStore();
+  const { parityReport, results, figmaComponents } = useAuditStore();
   const { figmaFileKey } = useOnboardingStore();
+  const [visualFlagCount, setVisualFlagCount] = useState(0);
+
+  useEffect(() => {
+    db.visualFlags.count().then(setVisualFlagCount);
+  }, []);
 
   if (!results) {
     return (
@@ -103,16 +115,29 @@ export default function ParityView() {
             ? "Poor"
             : "Critical";
 
+  const needsReviewCount = components.filter(
+    (c) => c.status === "needs-review",
+  ).length;
+
+  const figmaAllComponents = figmaComponents.map((f) => ({
+    name: f.name,
+    id: f.id,
+  }));
+
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Figma Parity</h1>
+            <h1 className="text-3xl font-bold text-gray-900">DS Parity</h1>
             <p className="text-gray-500 mt-1 text-sm">
-              Comparing {parityReport.totalCodeComponents} code components
-              against {parityReport.totalFigmaComponents} Figma components
+              Compare Figma components against code implementations, surface
+              mismatches, and track intentional differences.
+            </p>
+            <p className="text-gray-400 mt-0.5 text-xs">
+              {parityReport.totalCodeComponents} code components ·{" "}
+              {parityReport.totalFigmaComponents} Figma components
             </p>
           </div>
           <div className="flex gap-3">
@@ -120,35 +145,57 @@ export default function ParityView() {
               score={overallScore}
               grade={overallGrade}
               label="Parity Score"
+              tooltip="The average alignment score across all matched components. Based on name and prop consistency — excludes components with no Figma match."
             />
             <ScoreBadge
               score={coverageScore}
               grade={coverageGrade}
               label="Coverage"
+              tooltip="The percentage of code components that have a confirmed Figma counterpart. Components marked as 'needs review' or 'missing in Figma' are not counted."
             />
           </div>
         </div>
 
         {/* Summary row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <StatCard
             icon={<CheckCircle size={18} className="text-green-600" />}
             label="Aligned"
             value={parityReport.alignedCount}
             bg="bg-green-50"
+            tooltip="Components with a confirmed Figma match and a parity score of 90 or above. Name and props are consistent between Figma and code."
           />
           <StatCard
             icon={<AlertTriangle size={18} className="text-amber-600" />}
             label="Have issues"
             value={parityReport.issuesCount}
             bg="bg-amber-50"
+            tooltip="Components matched to Figma but with a parity score below 90. Common causes: missing props in code, naming differences, or undocumented Figma properties."
           />
           <StatCard
             icon={<XCircle size={18} className="text-red-600" />}
             label="Missing in Figma"
             value={missingInFigma.length}
             bg="bg-red-50"
+            tooltip="Code components with no confirmed Figma counterpart. These reduce the coverage score. Use the component row to link a Figma match, or mark as intentional."
           />
+          {needsReviewCount > 0 && (
+            <StatCard
+              icon={<AlertTriangle size={18} className="text-violet-600" />}
+              label="Need review"
+              value={needsReviewCount}
+              bg="bg-violet-50"
+              tooltip="Components where the fuzzy matcher found a possible Figma match but isn't confident enough to auto-confirm it. Expand the row to confirm or dismiss the suggestion."
+            />
+          )}
+          {visualFlagCount > 0 && (
+            <StatCard
+              icon={<Flag size={18} className="text-orange-600" />}
+              label="Visual flags"
+              value={visualFlagCount}
+              bg="bg-orange-50"
+            />
+          )}
         </div>
 
         {/* Missing in code */}
@@ -171,201 +218,26 @@ export default function ParityView() {
           </div>
         )}
 
-        {/* Review needed */}
-        <ReviewNeededSection
-          components={components}
-          figmaFileKey={figmaFileKey}
-          onResolved={() => useAuditStore.getState().startScan()}
-        />
-
         {/* Component list */}
         <div className="bg-white rounded-lg border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-100">
             <h2 className="font-semibold text-gray-900">Components</h2>
           </div>
           <div className="divide-y divide-gray-100">
-            {components
-              .filter((c) => c.status !== "needs-review")
-              .map((component) => (
-                <ComponentParityRow
-                  key={component.componentName}
-                  component={component}
-                  figmaFileKey={figmaFileKey}
-                />
-              ))}
+            {components.map((component) => (
+              <ComponentParityRow
+                key={component.componentName}
+                component={component}
+                figmaFileKey={figmaFileKey}
+                figmaAllComponents={figmaAllComponents}
+                onMatchChanged={rerunParity}
+                onFlagChanged={() =>
+                  db.visualFlags.count().then(setVisualFlagCount)
+                }
+              />
+            ))}
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function ReviewNeededSection({
-  components,
-  figmaFileKey,
-  onResolved,
-}: {
-  components: ComponentParityResult[];
-  figmaFileKey: string;
-  onResolved: () => void;
-}) {
-  const reviewItems = components.filter((c) => c.status === "needs-review");
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-  const visible = reviewItems.filter((c) => !dismissed.has(c.componentName));
-
-  if (visible.length === 0) return null;
-
-  const handleConfirm = async (codeName: string, candidate: FigmaCandidate) => {
-    await db.componentMappings
-      .where("codeComponentName")
-      .equalsIgnoreCase(codeName)
-      .delete();
-    await db.componentMappings.add({
-      codeComponentName: codeName,
-      figmaComponentName: candidate.figmaName,
-      figmaNodeId: candidate.figmaNodeId,
-      createdAt: new Date().toISOString(),
-    });
-    setDismissed((prev) => new Set(prev).add(codeName));
-    onResolved();
-  };
-
-  const handleMarkGap = async (codeName: string) => {
-    await db.noMatchDecisions
-      .where("codeComponentName")
-      .equalsIgnoreCase(codeName)
-      .delete();
-    await db.noMatchDecisions.add({
-      codeComponentName: codeName,
-      reason: "gap",
-      createdAt: new Date().toISOString(),
-    });
-    setDismissed((prev) => new Set(prev).add(codeName));
-    onResolved();
-  };
-
-  const handleMarkIntentional = async (codeName: string) => {
-    await db.noMatchDecisions
-      .where("codeComponentName")
-      .equalsIgnoreCase(codeName)
-      .delete();
-    await db.noMatchDecisions.add({
-      codeComponentName: codeName,
-      reason: "intentional",
-      createdAt: new Date().toISOString(),
-    });
-    setDismissed((prev) => new Set(prev).add(codeName));
-    onResolved();
-  };
-
-  return (
-    <div className="mb-6">
-      <div className="flex items-center gap-2 mb-3">
-        <HelpCircle size={16} className="text-amber-500" />
-        <h3 className="text-sm font-semibold text-amber-800">
-          Review needed — {visible.length} component
-          {visible.length > 1 ? "s" : ""} with potential Figma matches
-        </h3>
-      </div>
-
-      <div className="space-y-3">
-        {visible.map((component) => (
-          <div
-            key={component.componentName}
-            className="bg-amber-50 border border-amber-200 rounded-lg p-4"
-          >
-            <div className="flex items-start justify-between gap-4 mb-3">
-              <div>
-                <p className="text-sm font-semibold text-gray-900">
-                  {component.componentName}
-                </p>
-                <p className="text-xs text-amber-700 mt-0.5">
-                  {component.isSuggestedMatch
-                    ? `Fuzzy matched to "${component.figmaName}" — is this correct?`
-                    : "No exact match found — did any of these match?"}
-                </p>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => handleMarkGap(component.componentName)}
-                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 transition-colors"
-                  title="Mark as a gap — needs Figma documentation"
-                >
-                  <Wrench size={13} />
-                  Mark as gap
-                </button>
-                <button
-                  onClick={() => handleMarkIntentional(component.componentName)}
-                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition-colors"
-                  title="This component intentionally has no Figma counterpart"
-                >
-                  <Link2Off size={13} />
-                  Intentional
-                </button>
-              </div>
-            </div>
-
-            {/* Candidates */}
-            <div className="space-y-1.5">
-              {component.candidates.map((candidate) => {
-                const pct = Math.round(candidate.score * 100);
-                const barColor =
-                  pct >= 85
-                    ? "bg-green-400"
-                    : pct >= 70
-                      ? "bg-amber-400"
-                      : "bg-gray-300";
-
-                return (
-                  <div
-                    key={candidate.figmaName}
-                    className="flex items-center gap-3 bg-white rounded-lg px-3 py-2 border border-amber-100"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-800 truncate">
-                          {candidate.figmaName}
-                        </span>
-                        {figmaFileKey && candidate.figmaNodeId && (
-                          <a
-                            href={figmaLink(
-                              figmaFileKey,
-                              candidate.figmaNodeId,
-                            )}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-gray-300 hover:text-violet-600 transition-colors shrink-0"
-                          >
-                            <ExternalLink size={11} />
-                          </a>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <div className="w-20 h-1 bg-gray-200 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full ${barColor} rounded-full`}
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-gray-400">
-                          {pct}% match
-                        </span>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() =>
-                        handleConfirm(component.componentName, candidate)
-                      }
-                      className="shrink-0 text-xs px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors"
-                    >
-                      Use this
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );
@@ -375,21 +247,42 @@ function ScoreBadge({
   score,
   grade,
   label,
+  tooltip,
 }: {
   score: number;
   grade: string;
   label: string;
+  tooltip?: string;
 }) {
+  const [showTooltip, setShowTooltip] = useState(false);
   const colorClass = getGradeColor(
     grade as Parameters<typeof getGradeColor>[0],
   );
   return (
-    <div className={`border rounded-xl px-5 py-3 text-center ${colorClass}`}>
-      <p className="text-xs font-medium uppercase tracking-wide opacity-70 mb-1">
-        {label}
-      </p>
+    <div
+      className={`relative border rounded-xl px-5 py-3 text-center ${colorClass}`}
+    >
+      <div className="flex items-center justify-center gap-1 mb-1">
+        <p className="text-xs font-medium uppercase tracking-wide opacity-70">
+          {label}
+        </p>
+        {tooltip && (
+          <button
+            onMouseEnter={() => setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
+            className="opacity-50 hover:opacity-80 transition-opacity"
+          >
+            <Info size={11} />
+          </button>
+        )}
+      </div>
       <p className="text-3xl font-bold">{score}</p>
       <p className="text-sm font-medium mt-0.5">{grade}</p>
+      {showTooltip && tooltip && (
+        <div className="absolute top-full mt-2 right-0 z-10 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-lg text-left font-normal normal-case tracking-normal">
+          {tooltip}
+        </div>
+      )}
     </div>
   );
 }
@@ -399,18 +292,39 @@ function StatCard({
   label,
   value,
   bg,
+  tooltip,
 }: {
   icon: React.ReactNode;
   label: string;
   value: number;
   bg: string;
+  tooltip?: string;
 }) {
+  const [showTooltip, setShowTooltip] = useState(false);
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-4 flex items-center gap-3">
-      <div className={`${bg} p-2 rounded-lg`}>{icon}</div>
-      <div>
+      <div className={`${bg} p-2 rounded-lg shrink-0`}>{icon}</div>
+      <div className="flex-1 min-w-0">
         <p className="text-xl font-bold text-gray-900">{value}</p>
-        <p className="text-xs text-gray-500">{label}</p>
+        <div className="flex items-center gap-1">
+          <p className="text-xs text-gray-500">{label}</p>
+          {tooltip && (
+            <div className="relative">
+              <button
+                onMouseEnter={() => setShowTooltip(true)}
+                onMouseLeave={() => setShowTooltip(false)}
+                className="text-gray-300 hover:text-gray-400 transition-colors"
+              >
+                <Info size={11} />
+              </button>
+              {showTooltip && (
+                <div className="absolute top-5 left-0 z-10 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-lg">
+                  {tooltip}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -419,9 +333,15 @@ function StatCard({
 function ComponentParityRow({
   component,
   figmaFileKey,
+  figmaAllComponents,
+  onMatchChanged,
+  onFlagChanged,
 }: {
   component: ComponentParityResult;
   figmaFileKey: string;
+  figmaAllComponents: { name: string; id: string }[];
+  onMatchChanged: () => void;
+  onFlagChanged: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [approvingIssue, setApprovingIssue] = useState<ParityIssue | null>(
@@ -431,11 +351,12 @@ function ComponentParityRow({
 
   const dotClass = getGradeDot(component.grade);
   const hasIssues = component.issues.length > 0;
+  const isNeedsReview = component.status === "needs-review";
 
   return (
     <div className="hover:bg-gray-50 transition-colors">
       <button
-        onClick={() => hasIssues && setExpanded(!expanded)}
+        onClick={() => setExpanded(!expanded)}
         className="w-full px-6 py-4 flex items-center justify-between text-left"
       >
         <div className="flex items-center gap-3">
@@ -444,9 +365,14 @@ function ComponentParityRow({
             <span className="text-sm font-medium text-gray-900">
               {component.componentName}
             </span>
-            {component.figmaName && (
+            {component.figmaName && !isNeedsReview && (
               <span className="text-xs text-gray-400 ml-2">
                 ← {component.figmaName}
+              </span>
+            )}
+            {component.figmaName && isNeedsReview && (
+              <span className="text-xs text-amber-500 ml-2">
+                ← {component.figmaName}?
               </span>
             )}
           </div>
@@ -455,9 +381,14 @@ function ComponentParityRow({
               {component.approvedExceptionCount} approved
             </span>
           )}
+          {isNeedsReview && (
+            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
+              Review needed
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
-          {component.figmaNodeId && figmaFileKey && (
+          {component.figmaNodeId && figmaFileKey && !isNeedsReview && (
             <a
               href={figmaLink(figmaFileKey, component.figmaNodeId)}
               target="_blank"
@@ -475,32 +406,50 @@ function ComponentParityRow({
           >
             {component.score} · {component.grade}
           </span>
-          {hasIssues &&
-            (expanded ? (
-              <ChevronUp size={14} className="text-gray-400" />
-            ) : (
-              <ChevronDown size={14} className="text-gray-400" />
-            ))}
+          {expanded ? (
+            <ChevronUp size={14} className="text-gray-400" />
+          ) : (
+            <ChevronDown size={14} className="text-gray-400" />
+          )}
         </div>
       </button>
 
-      {expanded && hasIssues && (
-        <div className="px-6 pb-4 pl-11 space-y-2">
-          {component.issues.map((issue, i) => (
-            <IssueRow
-              key={i}
-              issue={issue}
-              componentName={component.componentName}
-              onApprove={() => setApprovingIssue(issue)}
-              onRevoke={async () => {
-                await db.driftExceptions
-                  .where("componentName")
-                  .equals(component.componentName)
-                  .delete();
-                forceRender((n) => n + 1);
-              }}
-            />
-          ))}
+      {expanded && (
+        <div className="px-6 pb-4 pl-11 space-y-3">
+          {/* Inline Figma match control */}
+          <FigmaMatchControl
+            component={component}
+            figmaFileKey={figmaFileKey}
+            figmaAllComponents={figmaAllComponents}
+            onChanged={onMatchChanged}
+          />
+
+          {/* Issues */}
+          {hasIssues && (
+            <div className="space-y-2 pt-1">
+              {component.issues.map((issue, i) => (
+                <IssueRow
+                  key={i}
+                  issue={issue}
+                  componentName={component.componentName}
+                  onApprove={() => setApprovingIssue(issue)}
+                  onRevoke={async () => {
+                    await db.driftExceptions
+                      .where("componentName")
+                      .equals(component.componentName)
+                      .delete();
+                    forceRender((n) => n + 1);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Visual flag */}
+          <VisualFlagControl
+            componentName={component.componentName}
+            onChanged={onFlagChanged}
+          />
         </div>
       )}
 
@@ -516,6 +465,513 @@ function ComponentParityRow({
         />
       )}
     </div>
+  );
+}
+
+function FigmaMatchControl({
+  component,
+  figmaFileKey,
+  figmaAllComponents,
+  onChanged,
+}: {
+  component: ComponentParityResult;
+  figmaFileKey: string;
+  figmaAllComponents: { name: string; id: string }[];
+  onChanged: () => void;
+}) {
+  const [showSelect, setShowSelect] = useState(false);
+  const [selectedFigmaName, setSelectedFigmaName] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [noMatchDecision, setNoMatchDecision] = useState<{
+    reason: "gap" | "intentional";
+  } | null>(null);
+
+  useEffect(() => {
+    db.noMatchDecisions
+      .where("codeComponentName")
+      .equalsIgnoreCase(component.componentName)
+      .first()
+      .then((d) => setNoMatchDecision(d ? { reason: d.reason } : null));
+  }, [component.componentName]);
+
+  const figmaNames = figmaAllComponents.map((f) => f.name).sort();
+
+  const saveMapping = async (figmaName: string, figmaNodeId?: string) => {
+    setSaving(true);
+    await db.componentMappings
+      .where("codeComponentName")
+      .equalsIgnoreCase(component.componentName)
+      .delete();
+    await db.componentMappings.add({
+      codeComponentName: component.componentName,
+      figmaComponentName: figmaName,
+      figmaNodeId,
+      createdAt: new Date().toISOString(),
+    });
+    setSaving(false);
+    setShowSelect(false);
+    setSelectedFigmaName("");
+    onChanged();
+  };
+
+  const handleConfirmCandidate = (candidate: FigmaCandidate) =>
+    saveMapping(candidate.figmaName, candidate.figmaNodeId);
+
+  const handleSaveManual = async () => {
+    if (!selectedFigmaName) return;
+    const figmaComp = figmaAllComponents.find(
+      (f) => f.name === selectedFigmaName,
+    );
+    await saveMapping(selectedFigmaName, figmaComp?.id);
+  };
+
+  const handleRemoveMapping = async () => {
+    await db.componentMappings
+      .where("codeComponentName")
+      .equalsIgnoreCase(component.componentName)
+      .delete();
+    onChanged();
+  };
+
+  const handleNoMatch = async (reason: "gap" | "intentional") => {
+    await db.noMatchDecisions
+      .where("codeComponentName")
+      .equalsIgnoreCase(component.componentName)
+      .delete();
+    await db.noMatchDecisions.add({
+      codeComponentName: component.componentName,
+      reason,
+      createdAt: new Date().toISOString(),
+    });
+    setNoMatchDecision({ reason });
+    onChanged();
+  };
+
+  const handleRemoveDecision = async () => {
+    await db.noMatchDecisions
+      .where("codeComponentName")
+      .equalsIgnoreCase(component.componentName)
+      .delete();
+    setNoMatchDecision(null);
+    onChanged();
+  };
+
+  const hasConfirmedMatch =
+    component.figmaName &&
+    component.status !== "missing-in-figma" &&
+    component.status !== "needs-review";
+
+  // Explicitly marked: gap or intentional
+  if (noMatchDecision) {
+    return (
+      <div className="flex items-center gap-2 py-1 border-b border-gray-100 pb-3">
+        <span className="text-xs text-gray-400 w-24 shrink-0">Figma match</span>
+        <span
+          className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
+            noMatchDecision.reason === "gap"
+              ? "bg-red-50 text-red-700 border-red-200"
+              : "bg-gray-100 text-gray-600 border-gray-200"
+          }`}
+        >
+          {noMatchDecision.reason === "gap"
+            ? "Gap — needs Figma documentation"
+            : "Intentional — no Figma spec needed"}
+        </span>
+        <button
+          onClick={handleRemoveDecision}
+          className="ml-auto text-xs text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          Remove
+        </button>
+      </div>
+    );
+  }
+
+  // Confirmed match (aligned / issues / critical)
+  if (hasConfirmedMatch) {
+    return (
+      <div className="border-b border-gray-100 pb-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400 w-24 shrink-0">
+            Figma match
+          </span>
+          <span className="text-xs font-medium text-gray-700">
+            {component.figmaName}
+          </span>
+          {figmaFileKey && component.figmaNodeId && (
+            <a
+              href={figmaLink(figmaFileKey, component.figmaNodeId)}
+              target="_blank"
+              rel="noreferrer"
+              className="text-gray-300 hover:text-violet-600 transition-colors"
+            >
+              <ExternalLink size={11} />
+            </a>
+          )}
+          <div className="ml-auto flex items-center gap-3">
+            <button
+              onClick={() => setShowSelect(!showSelect)}
+              className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
+            >
+              Change
+            </button>
+            <button
+              onClick={handleRemoveMapping}
+              className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+        {showSelect && (
+          <ManualSelect
+            figmaNames={figmaNames}
+            selectedFigmaName={selectedFigmaName}
+            onSelect={setSelectedFigmaName}
+            onSave={handleSaveManual}
+            onCancel={() => setShowSelect(false)}
+            saving={saving}
+          />
+        )}
+      </div>
+    );
+  }
+
+  // Needs review — fuzzy suggest with candidates
+  if (component.status === "needs-review" && component.candidates.length > 0) {
+    return (
+      <div className="border-b border-gray-100 pb-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-gray-400 w-24 shrink-0">
+            Figma match
+          </span>
+          <span className="text-xs text-amber-600 font-medium">
+            {component.isSuggestedMatch
+              ? `"${component.figmaName}" — is this the right match?`
+              : "Possible matches found — pick one to confirm"}
+          </span>
+        </div>
+
+        <div className="space-y-1.5 pl-24">
+          {component.candidates.map((candidate) => {
+            const pct = Math.round(candidate.score * 100);
+            const barColor =
+              pct >= 85
+                ? "bg-green-400"
+                : pct >= 70
+                  ? "bg-amber-400"
+                  : "bg-gray-300";
+            return (
+              <div
+                key={candidate.figmaName}
+                className="flex items-center gap-3 bg-amber-50 rounded-lg px-3 py-2 border border-amber-100"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-800 truncate">
+                      {candidate.figmaName}
+                    </span>
+                    {figmaFileKey && candidate.figmaNodeId && (
+                      <a
+                        href={figmaLink(figmaFileKey, candidate.figmaNodeId)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-gray-300 hover:text-violet-600 transition-colors shrink-0"
+                      >
+                        <ExternalLink size={10} />
+                      </a>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="w-16 h-1 bg-gray-200 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${barColor} rounded-full`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-gray-400">{pct}%</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleConfirmCandidate(candidate)}
+                  disabled={saving}
+                  className="shrink-0 text-xs px-2.5 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors disabled:opacity-50"
+                >
+                  Use this
+                </button>
+              </div>
+            );
+          })}
+
+          {showSelect ? (
+            <ManualSelect
+              figmaNames={figmaNames}
+              selectedFigmaName={selectedFigmaName}
+              onSelect={setSelectedFigmaName}
+              onSave={handleSaveManual}
+              onCancel={() => setShowSelect(false)}
+              saving={saving}
+            />
+          ) : (
+            <div className="flex items-center gap-3 pt-1">
+              <button
+                onClick={() => setShowSelect(true)}
+                className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
+              >
+                Pick a different match
+              </button>
+              <span className="text-gray-300">·</span>
+              <button
+                onClick={() => handleNoMatch("gap")}
+                className="text-xs text-gray-400 hover:text-red-600 transition-colors"
+              >
+                Mark as gap
+              </button>
+              <span className="text-gray-300">·</span>
+              <button
+                onClick={() => handleNoMatch("intentional")}
+                className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
+              >
+                Intentional
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Missing in Figma — no match, no candidates
+  return (
+    <div className="border-b border-gray-100 pb-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-400 w-24 shrink-0">Figma match</span>
+        <span className="text-xs text-gray-400">No Figma component found</span>
+      </div>
+      <div className="pl-24">
+        {showSelect ? (
+          <ManualSelect
+            figmaNames={figmaNames}
+            selectedFigmaName={selectedFigmaName}
+            onSelect={setSelectedFigmaName}
+            onSave={handleSaveManual}
+            onCancel={() => setShowSelect(false)}
+            saving={saving}
+          />
+        ) : (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowSelect(true)}
+              className="text-xs text-primary-600 hover:text-primary-700 font-medium transition-colors"
+            >
+              Link Figma component
+            </button>
+            <span className="text-gray-300">·</span>
+            <button
+              onClick={() => handleNoMatch("gap")}
+              className="text-xs text-gray-400 hover:text-red-600 transition-colors"
+            >
+              Mark as gap
+            </button>
+            <span className="text-gray-300">·</span>
+            <button
+              onClick={() => handleNoMatch("intentional")}
+              className="text-xs text-gray-400 hover:text-gray-700 transition-colors"
+            >
+              Intentional
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ManualSelect({
+  figmaNames,
+  selectedFigmaName,
+  onSelect,
+  onSave,
+  onCancel,
+  saving,
+}: {
+  figmaNames: string[];
+  selectedFigmaName: string;
+  onSelect: (name: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  saving: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <select
+        value={selectedFigmaName}
+        onChange={(e) => onSelect(e.target.value)}
+        className="flex-1 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500 bg-white"
+      >
+        <option value="">— Select Figma component —</option>
+        {figmaNames.map((name) => (
+          <option key={name} value={name}>
+            {name}
+          </option>
+        ))}
+      </select>
+      <button
+        onClick={onSave}
+        disabled={!selectedFigmaName || saving}
+        className="text-xs px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 font-medium transition-colors"
+      >
+        {saving ? "Saving…" : "Save"}
+      </button>
+      <button
+        onClick={onCancel}
+        className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+      >
+        Cancel
+      </button>
+    </div>
+  );
+}
+
+function VisualFlagControl({
+  componentName,
+  onChanged,
+}: {
+  componentName: string;
+  onChanged: () => void;
+}) {
+  const [flag, setFlag] = useState<VisualFlag | null>(null);
+  const [showForm, setShowForm] = useState(false);
+  const [note, setNote] = useState("");
+  const [flaggedBy, setFlaggedBy] = useState<"designer" | "engineer">(
+    "designer",
+  );
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    db.visualFlags
+      .where("componentName")
+      .equalsIgnoreCase(componentName)
+      .first()
+      .then((f) => setFlag(f ?? null));
+  }, [componentName]);
+
+  const handleSave = async () => {
+    if (!note.trim()) return;
+    setSaving(true);
+    const saved = await db.visualFlags.add({
+      componentName,
+      note: note.trim(),
+      flaggedBy,
+      createdAt: new Date().toISOString(),
+    });
+    const newFlag = await db.visualFlags.get(saved);
+    setFlag(newFlag ?? null);
+    setShowForm(false);
+    setNote("");
+    setSaving(false);
+    onChanged();
+  };
+
+  const handleResolve = async () => {
+    await db.visualFlags
+      .where("componentName")
+      .equalsIgnoreCase(componentName)
+      .delete();
+    setFlag(null);
+    onChanged();
+  };
+
+  if (flag) {
+    return (
+      <div className="flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2.5 mt-1">
+        <Flag size={13} className="text-orange-500 mt-0.5 shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-xs font-medium text-orange-800">
+              Visual inconsistency
+            </span>
+            <span className="text-xs text-orange-500 capitalize">
+              · {flag.flaggedBy}
+            </span>
+          </div>
+          <p className="text-xs text-orange-700">{flag.note}</p>
+        </div>
+        <button
+          onClick={handleResolve}
+          className="text-xs text-orange-400 hover:text-orange-700 transition-colors shrink-0 whitespace-nowrap"
+        >
+          Mark resolved
+        </button>
+      </div>
+    );
+  }
+
+  if (showForm) {
+    return (
+      <div className="border border-orange-200 rounded-lg p-3 mt-1 space-y-2.5 bg-orange-50">
+        <textarea
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Describe the visual inconsistency..."
+          rows={2}
+          className="w-full px-2.5 py-2 text-xs border border-orange-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-400 bg-white resize-none"
+        />
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-gray-500">Flagged by</span>
+            <button
+              onClick={() => setFlaggedBy("designer")}
+              className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+                flaggedBy === "designer"
+                  ? "bg-purple-50 text-purple-700 border-purple-200"
+                  : "text-gray-400 border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              🎨 Designer
+            </button>
+            <button
+              onClick={() => setFlaggedBy("engineer")}
+              className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
+                flaggedBy === "engineer"
+                  ? "bg-blue-50 text-blue-700 border-blue-200"
+                  : "text-gray-400 border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              ⚙ Engineer
+            </button>
+          </div>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => {
+                setShowForm(false);
+                setNote("");
+              }}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!note.trim() || saving}
+              className="text-xs px-3 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 font-medium transition-colors"
+            >
+              {saving ? "Saving…" : "Save flag"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={() => setShowForm(true)}
+      className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-orange-500 transition-colors mt-1"
+    >
+      <Flag size={12} />
+      Flag visual inconsistency
+    </button>
   );
 }
 

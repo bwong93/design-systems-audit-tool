@@ -6,12 +6,10 @@ import {
   CheckCircle,
   Package,
   Info,
-  ExternalLink,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuditStore } from "../../stores/audit-store";
 import { useOnboardingStore } from "../../stores/onboarding-store";
-import { githubLink, storybookLink } from "../../utils/links";
 import type { ComponentMetadata } from "../../types/component";
 
 export default function Dashboard() {
@@ -96,7 +94,7 @@ export default function Dashboard() {
             )}
 
             {/* Summary cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <SummaryCard
                 icon={<Package size={20} className="text-primary-600" />}
                 label="Code components"
@@ -111,7 +109,7 @@ export default function Dashboard() {
                   results.components.filter(hasFullStructure).length,
                 )}
                 bg="bg-green-50"
-                description="Components that have all 4 required files: Component.tsx (implementation), Component.spec.tsx (tests), Component.stories.tsx (Storybook), and index.ts (exports). This is the expected standard for every Nucleus component."
+                description="Components that have all required files: Component.tsx, Component.spec.tsx, Component.stories.tsx, and index.ts."
               />
               <SummaryCard
                 icon={<AlertTriangle size={20} className="text-amber-600" />}
@@ -120,7 +118,7 @@ export default function Dashboard() {
                   results.components.filter((c) => !hasFullStructure(c)).length,
                 )}
                 bg="bg-amber-50"
-                description="Components missing one or more required files. Missing tests, stories, or an index file means the component isn't fully documented, testable, or properly exported — these should be addressed."
+                description="Components missing one or more required files. Missing tests, stories, or an index file means the component isn't fully documented or properly exported."
               />
               <SummaryCard
                 icon={
@@ -144,59 +142,6 @@ export default function Dashboard() {
                 tooltipAlign="right"
               />
             </div>
-
-            {/* Legend */}
-            <div className="flex items-center gap-6 px-1 mb-4">
-              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
-                Status
-              </p>
-              <div className="flex items-center gap-4">
-                <LegendItem color="bg-green-400" label="All checks pass" />
-                <LegendItem color="bg-amber-400" label="1–2 issues" />
-                <LegendItem color="bg-red-400" label="3+ issues" />
-              </div>
-            </div>
-
-            {/* Checks explained */}
-            <ChecksExplained />
-
-            {/* Component table */}
-            <div className="bg-white rounded-lg border border-gray-200 mt-4">
-              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                <h2 className="font-semibold text-gray-900">Components</h2>
-                <span className="text-sm text-gray-400">
-                  Last scanned{" "}
-                  {new Date(results.timestamp).toLocaleTimeString()}
-                </span>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {results.components.map((component) => (
-                  <ComponentRow key={component.name} component={component} />
-                ))}
-              </div>
-            </div>
-
-            {/* Scan errors */}
-            {results.errors.length > 0 && (
-              <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <p className="text-sm font-medium text-amber-800 mb-2">
-                  {results.errors.length} component
-                  {results.errors.length > 1 ? "s" : ""} could not be analyzed
-                </p>
-                <ul className="text-xs text-amber-700 space-y-1">
-                  {results.errors.slice(0, 5).map((e, i) => (
-                    <li key={i}>
-                      · {e.componentName ?? e.filePath}: {e.error}
-                    </li>
-                  ))}
-                  {results.errors.length > 5 && (
-                    <li className="text-amber-500">
-                      …and {results.errors.length - 5} more
-                    </li>
-                  )}
-                </ul>
-              </div>
-            )}
           </>
         )}
 
@@ -226,89 +171,6 @@ export default function Dashboard() {
 
 function hasFullStructure(c: ComponentMetadata) {
   return c.hasSpec && c.hasStories && c.hasIndex;
-}
-
-function LegendItem({ color, label }: { color: string; label: string }) {
-  return (
-    <div className="flex items-center gap-1.5">
-      <div className={`w-2 h-2 rounded-full ${color}`} />
-      <span className="text-xs text-gray-500">{label}</span>
-    </div>
-  );
-}
-
-function ChecksExplained() {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <div className="border border-gray-200 rounded-lg bg-gray-50 px-4 py-3">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors w-full text-left"
-      >
-        <Info size={15} className="text-gray-400 shrink-0" />
-        <span className="font-medium">What do these checks mean?</span>
-        <span className="ml-auto text-gray-400 text-xs">
-          {open ? "Hide" : "Show"}
-        </span>
-      </button>
-      {open && (
-        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-xs text-gray-600 border-t border-gray-200 pt-3">
-          <CheckItem
-            label="Missing .spec.tsx"
-            good="Tests exist — component behaviour is verified"
-            bad="No tests — bugs and regressions may go undetected"
-            fix="⚙ Engineer: Create {Name}.spec.tsx, wrap renders with <NucleusProvider> — see Tag.spec.tsx as a reference"
-          />
-          <CheckItem
-            label="Missing .stories.tsx"
-            good="Stories exist — component is documented in Storybook"
-            bad="No stories — designers and engineers have no visual reference"
-            fix="⚙ Engineer: Create {Name}.stories.tsx with a default story and variant stories — see Tag.stories.tsx as a reference"
-          />
-          <CheckItem
-            label="Missing index.ts"
-            good="Properly exported — can be imported by consuming apps"
-            bad="No index — component may not be accessible from the package"
-            fix="⚙ Engineer: Create index.ts and export the component, its props type, and any variant types"
-          />
-          <CheckItem
-            label="No theme tokens detected"
-            good="Uses theme.tokens.* — colours and spacing adapt across themes"
-            bad="Hard-coded values — won't respond to theme changes or rebrands"
-            fix="⚙ Engineer: Replace hex/rgb values with theme.tokens.* or theme.colors.* — see src/theme/theme.ts for available tokens"
-          />
-          <CheckItem
-            label="No :focus-visible styles"
-            good="Keyboard focus is visible — meets WCAG 2.2 AA"
-            bad="Focus styles missing — keyboard and assistive technology users affected"
-            fix="⚙ Engineer: Add &:focus-visible { outline: 2px solid; outline-offset: 2px; } to the interactive styled component — see Button.tsx as a reference"
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function CheckItem({
-  label,
-  good,
-  bad,
-  fix,
-}: {
-  label: string;
-  good: string;
-  bad: string;
-  fix?: string;
-}) {
-  return (
-    <div className="py-1.5">
-      <p className="font-medium text-gray-700 mb-0.5">{label}</p>
-      <p className="text-green-700">✓ {good}</p>
-      <p className="text-red-600">✗ {bad}</p>
-      {fix && <p className="text-blue-600 mt-0.5">🔧 {fix}</p>}
-    </div>
-  );
 }
 
 function SummaryCard({
@@ -358,98 +220,6 @@ function SummaryCard({
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function ComponentRow({ component }: { component: ComponentMetadata }) {
-  const [expanded, setExpanded] = useState(false);
-
-  const issues = [
-    !component.hasSpec && "Missing .spec.tsx — no tests",
-    !component.hasStories &&
-      "Missing .stories.tsx — no Storybook documentation",
-    !component.hasIndex && "Missing index.ts — may not be properly exported",
-    !component.usesTokens && "No theme tokens — may use hard-coded values",
-    !component.hasFocusVisible &&
-      "No :focus-visible — keyboard accessibility at risk",
-  ].filter(Boolean) as string[];
-
-  return (
-    <div className="hover:bg-gray-50 transition-colors">
-      <button
-        onClick={() => issues.length > 0 && setExpanded(!expanded)}
-        className="w-full px-6 py-4 flex items-center justify-between text-left"
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className={`w-2 h-2 rounded-full shrink-0 ${
-              issues.length === 0
-                ? "bg-green-400"
-                : issues.length <= 2
-                  ? "bg-amber-400"
-                  : "bg-red-400"
-            }`}
-          />
-          <span className="text-sm font-medium text-gray-900">
-            {component.name}
-          </span>
-          {component.props.length > 0 && (
-            <span className="text-xs text-gray-400">
-              {component.props.length} props
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-3">
-          <a
-            href={storybookLink(component.name)}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
-            title="Open in Storybook"
-          >
-            <ExternalLink size={13} />
-            Storybook
-          </a>
-          <a
-            href={githubLink(component.filePath)}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 transition-colors"
-            title="View source on GitHub"
-          >
-            <ExternalLink size={13} />
-            GitHub
-          </a>
-          {issues.length === 0 ? (
-            <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
-              All checks pass
-            </span>
-          ) : (
-            <span className="text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-              {issues.length} issue{issues.length > 1 ? "s" : ""} — click to
-              expand
-            </span>
-          )}
-        </div>
-      </button>
-      {expanded && issues.length > 0 && (
-        <div className="px-6 pb-4 pl-11">
-          <ul className="space-y-1">
-            {issues.map((issue, i) => (
-              <li
-                key={i}
-                className="text-xs text-amber-700 flex items-start gap-1.5"
-              >
-                <span className="mt-0.5 shrink-0">⚠</span>
-                {issue}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </div>
   );
 }

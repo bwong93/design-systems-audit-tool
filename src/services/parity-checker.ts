@@ -308,7 +308,9 @@ function checkComponent(
   const propsCheck = checkProps(code, figma, componentExceptions);
   const docsCheck = checkDocumentation(code, figma, componentExceptions);
 
-  const scores = [nameCheck.score, propsCheck.score, docsCheck.score];
+  // Docs check surfaces issues but doesn't affect the parity score —
+  // documentation completeness is a separate concern from component alignment.
+  const scores = [nameCheck.score, propsCheck.score];
   const score = averageScores(scores);
   const grade = getGrade(score);
 

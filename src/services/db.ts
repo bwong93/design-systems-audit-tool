@@ -19,12 +19,21 @@ export interface NoMatchDecision {
   createdAt: string;
 }
 
+export interface VisualFlag {
+  id?: number;
+  componentName: string;
+  note: string;
+  flaggedBy: "designer" | "engineer";
+  createdAt: string;
+}
+
 export class AuditDatabase extends Dexie {
   figmaCache!: Table<FigmaCache>;
   driftExceptions!: Table<DriftException>;
   scanResults!: Table<ScanResult & { id?: number }>;
   componentMappings!: Table<ComponentMapping>;
   noMatchDecisions!: Table<NoMatchDecision>;
+  visualFlags!: Table<VisualFlag>;
 
   constructor() {
     super("ds-audit-tool");
@@ -49,6 +58,16 @@ export class AuditDatabase extends Dexie {
       scanResults: "++id, timestamp",
       componentMappings: "++id, codeComponentName, figmaComponentName",
       noMatchDecisions: "++id, codeComponentName, reason",
+    });
+
+    // Version 4 adds visual inconsistency flags
+    this.version(4).stores({
+      figmaCache: "++id, fileKey, fetchedAt",
+      driftExceptions: "++id, componentName, category, propertyName, createdAt",
+      scanResults: "++id, timestamp",
+      componentMappings: "++id, codeComponentName, figmaComponentName",
+      noMatchDecisions: "++id, codeComponentName, reason",
+      visualFlags: "++id, componentName, createdAt",
     });
   }
 }
