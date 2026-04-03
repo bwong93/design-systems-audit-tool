@@ -3,7 +3,7 @@ import Layout from "./app/layouts/Layout";
 import Dashboard from "./app/pages/Dashboard";
 import Onboarding from "./app/pages/Onboarding";
 import ParityView from "./app/pages/ParityView";
-
+import Settings from "./app/pages/Settings";
 import { useOnboardingStore } from "./stores/onboarding-store";
 
 function App() {
@@ -57,12 +57,7 @@ function App() {
               </div>
             }
           />
-          <Route
-            path="settings"
-            element={
-              <div className="p-8 text-gray-500">Settings — coming soon</div>
-            }
-          />
+          <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
     </BrowserRouter>

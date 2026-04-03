@@ -7,11 +7,21 @@ import {
   ChevronUp,
   XCircle,
   Undo2,
+  ExternalLink,
+  HelpCircle,
+  Link2Off,
+  Wrench,
 } from "lucide-react";
+import { figmaLink, githubLink } from "../../utils/links";
 import { useAuditStore } from "../../stores/audit-store";
+import { useOnboardingStore } from "../../stores/onboarding-store";
 import { getGradeColor, getGradeDot } from "../../services/score-calculator";
 import { db } from "../../services/db";
-import type { ComponentParityResult, ParityIssue } from "../../types/parity";
+import type {
+  ComponentParityResult,
+  ParityIssue,
+  FigmaCandidate,
+} from "../../types/parity";
 import type { DriftReason } from "../../types/figma";
 
 const DRIFT_REASONS: {
@@ -43,6 +53,7 @@ const DRIFT_REASONS: {
 
 export default function ParityView() {
   const { parityReport, results } = useAuditStore();
+  const { figmaFileKey } = useOnboardingStore();
 
   if (!results) {
     return (
@@ -160,20 +171,201 @@ export default function ParityView() {
           </div>
         )}
 
+        {/* Review needed */}
+        <ReviewNeededSection
+          components={components}
+          figmaFileKey={figmaFileKey}
+          onResolved={() => useAuditStore.getState().startScan()}
+        />
+
         {/* Component list */}
         <div className="bg-white rounded-lg border border-gray-200">
           <div className="px-6 py-4 border-b border-gray-100">
             <h2 className="font-semibold text-gray-900">Components</h2>
           </div>
           <div className="divide-y divide-gray-100">
-            {components.map((component) => (
-              <ComponentParityRow
-                key={component.componentName}
-                component={component}
-              />
-            ))}
+            {components
+              .filter((c) => c.status !== "needs-review")
+              .map((component) => (
+                <ComponentParityRow
+                  key={component.componentName}
+                  component={component}
+                  figmaFileKey={figmaFileKey}
+                />
+              ))}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ReviewNeededSection({
+  components,
+  figmaFileKey,
+  onResolved,
+}: {
+  components: ComponentParityResult[];
+  figmaFileKey: string;
+  onResolved: () => void;
+}) {
+  const reviewItems = components.filter((c) => c.status === "needs-review");
+  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const visible = reviewItems.filter((c) => !dismissed.has(c.componentName));
+
+  if (visible.length === 0) return null;
+
+  const handleConfirm = async (codeName: string, candidate: FigmaCandidate) => {
+    await db.componentMappings
+      .where("codeComponentName")
+      .equalsIgnoreCase(codeName)
+      .delete();
+    await db.componentMappings.add({
+      codeComponentName: codeName,
+      figmaComponentName: candidate.figmaName,
+      figmaNodeId: candidate.figmaNodeId,
+      createdAt: new Date().toISOString(),
+    });
+    setDismissed((prev) => new Set(prev).add(codeName));
+    onResolved();
+  };
+
+  const handleMarkGap = async (codeName: string) => {
+    await db.noMatchDecisions
+      .where("codeComponentName")
+      .equalsIgnoreCase(codeName)
+      .delete();
+    await db.noMatchDecisions.add({
+      codeComponentName: codeName,
+      reason: "gap",
+      createdAt: new Date().toISOString(),
+    });
+    setDismissed((prev) => new Set(prev).add(codeName));
+    onResolved();
+  };
+
+  const handleMarkIntentional = async (codeName: string) => {
+    await db.noMatchDecisions
+      .where("codeComponentName")
+      .equalsIgnoreCase(codeName)
+      .delete();
+    await db.noMatchDecisions.add({
+      codeComponentName: codeName,
+      reason: "intentional",
+      createdAt: new Date().toISOString(),
+    });
+    setDismissed((prev) => new Set(prev).add(codeName));
+    onResolved();
+  };
+
+  return (
+    <div className="mb-6">
+      <div className="flex items-center gap-2 mb-3">
+        <HelpCircle size={16} className="text-amber-500" />
+        <h3 className="text-sm font-semibold text-amber-800">
+          Review needed — {visible.length} component
+          {visible.length > 1 ? "s" : ""} with potential Figma matches
+        </h3>
+      </div>
+
+      <div className="space-y-3">
+        {visible.map((component) => (
+          <div
+            key={component.componentName}
+            className="bg-amber-50 border border-amber-200 rounded-lg p-4"
+          >
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-900">
+                  {component.componentName}
+                </p>
+                <p className="text-xs text-amber-700 mt-0.5">
+                  {component.isSuggestedMatch
+                    ? `Fuzzy matched to "${component.figmaName}" — is this correct?`
+                    : "No exact match found — did any of these match?"}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => handleMarkGap(component.componentName)}
+                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 transition-colors"
+                  title="Mark as a gap — needs Figma documentation"
+                >
+                  <Wrench size={13} />
+                  Mark as gap
+                </button>
+                <button
+                  onClick={() => handleMarkIntentional(component.componentName)}
+                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                  title="This component intentionally has no Figma counterpart"
+                >
+                  <Link2Off size={13} />
+                  Intentional
+                </button>
+              </div>
+            </div>
+
+            {/* Candidates */}
+            <div className="space-y-1.5">
+              {component.candidates.map((candidate) => {
+                const pct = Math.round(candidate.score * 100);
+                const barColor =
+                  pct >= 85
+                    ? "bg-green-400"
+                    : pct >= 70
+                      ? "bg-amber-400"
+                      : "bg-gray-300";
+
+                return (
+                  <div
+                    key={candidate.figmaName}
+                    className="flex items-center gap-3 bg-white rounded-lg px-3 py-2 border border-amber-100"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-gray-800 truncate">
+                          {candidate.figmaName}
+                        </span>
+                        {figmaFileKey && candidate.figmaNodeId && (
+                          <a
+                            href={figmaLink(
+                              figmaFileKey,
+                              candidate.figmaNodeId,
+                            )}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-gray-300 hover:text-violet-600 transition-colors shrink-0"
+                          >
+                            <ExternalLink size={11} />
+                          </a>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <div className="w-20 h-1 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${barColor} rounded-full`}
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-gray-400">
+                          {pct}% match
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() =>
+                        handleConfirm(component.componentName, candidate)
+                      }
+                      className="shrink-0 text-xs px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition-colors"
+                    >
+                      Use this
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -226,8 +418,10 @@ function StatCard({
 
 function ComponentParityRow({
   component,
+  figmaFileKey,
 }: {
   component: ComponentParityResult;
+  figmaFileKey: string;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [approvingIssue, setApprovingIssue] = useState<ParityIssue | null>(
@@ -263,6 +457,19 @@ function ComponentParityRow({
           )}
         </div>
         <div className="flex items-center gap-3">
+          {component.figmaNodeId && figmaFileKey && (
+            <a
+              href={figmaLink(figmaFileKey, component.figmaNodeId)}
+              target="_blank"
+              rel="noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-violet-600 transition-colors"
+              title="Open in Figma"
+            >
+              <ExternalLink size={13} />
+              Figma
+            </a>
+          )}
           <span
             className={`text-xs px-2 py-0.5 rounded-full border font-medium ${getGradeColor(component.grade)}`}
           >
@@ -312,6 +519,21 @@ function ComponentParityRow({
   );
 }
 
+const OWNER_BADGE: Record<string, { label: string; className: string }> = {
+  designer: {
+    label: "🎨 Designer",
+    className: "bg-purple-50 text-purple-700 border-purple-200",
+  },
+  engineer: {
+    label: "⚙ Engineer",
+    className: "bg-blue-50 text-blue-700 border-blue-200",
+  },
+  both: {
+    label: "Both",
+    className: "bg-gray-100 text-gray-600 border-gray-200",
+  },
+};
+
 function IssueRow({
   issue,
   componentName: _componentName,
@@ -330,14 +552,22 @@ function IssueRow({
         ? "text-amber-600"
         : "text-gray-500";
 
+  const ownerBadge = OWNER_BADGE[issue.owner] ?? OWNER_BADGE.both;
+
   return (
-    <div className="flex items-start justify-between gap-4 bg-gray-50 rounded-lg p-3">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
+    <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+      {/* Header row */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2 flex-wrap">
           <span
             className={`text-xs font-semibold uppercase tracking-wide ${severityColor}`}
           >
             {issue.severity}
+          </span>
+          <span
+            className={`text-xs px-2 py-0.5 rounded-full border font-medium ${ownerBadge.className}`}
+          >
+            {ownerBadge.label}
           </span>
           {issue.field && (
             <code className="text-xs bg-gray-200 text-gray-700 px-1.5 py-0.5 rounded">
@@ -345,24 +575,75 @@ function IssueRow({
             </code>
           )}
         </div>
-        <p className="text-xs text-gray-700">{issue.message}</p>
-        <p className="text-xs text-gray-400 mt-0.5">Fix: {issue.remediation}</p>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={onApprove}
+            className="text-xs text-primary-600 hover:text-primary-700 font-medium whitespace-nowrap"
+          >
+            Approve drift
+          </button>
+          <button
+            onClick={onRevoke}
+            className="text-gray-400 hover:text-gray-600"
+            title="Revoke exception"
+          >
+            <Undo2 size={13} />
+          </button>
+        </div>
       </div>
-      <div className="flex items-center gap-2 shrink-0">
-        <button
-          onClick={onApprove}
-          className="text-xs text-primary-600 hover:text-primary-700 font-medium whitespace-nowrap"
-        >
-          Approve drift
-        </button>
-        <button
-          onClick={onRevoke}
-          className="text-gray-400 hover:text-gray-600"
-          title="Revoke exception"
-        >
-          <Undo2 size={13} />
-        </button>
-      </div>
+
+      {/* Message */}
+      <p className="text-xs text-gray-700">{issue.message}</p>
+
+      {/* Steps */}
+      {issue.steps.length > 0 && (
+        <ol className="space-y-1 pl-1">
+          {issue.steps.map((step, i) => (
+            <li
+              key={i}
+              className={`text-xs flex items-start gap-1.5 ${step.isAlternative ? "text-gray-400 italic" : "text-gray-600"}`}
+            >
+              {!step.isAlternative && (
+                <span className="shrink-0 w-4 text-gray-400">{i + 1}.</span>
+              )}
+              {step.isAlternative && (
+                <span className="shrink-0 text-gray-300 ml-4">↳</span>
+              )}
+              <span>
+                {step.text}
+                {step.filePath && (
+                  <>
+                    {" — "}
+                    <a
+                      href={githubLink(step.filePath)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary-600 hover:underline"
+                    >
+                      view file ↗
+                    </a>
+                  </>
+                )}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+
+      {/* Reference file */}
+      {issue.referenceFile && (
+        <p className="text-xs text-gray-400">
+          Reference:{" "}
+          <a
+            href={githubLink(issue.referenceFile)}
+            target="_blank"
+            rel="noreferrer"
+            className="text-primary-600 hover:underline"
+          >
+            {issue.referenceFile.split("/").slice(-2).join("/")} ↗
+          </a>
+        </p>
+      )}
     </div>
   );
 }

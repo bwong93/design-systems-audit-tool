@@ -1,7 +1,7 @@
 import type {
   FigmaComponent,
-  FigmaApiComponent,
-  FigmaApiComponentsResponse,
+  FigmaApiComponentSet,
+  FigmaApiComponentSetsResponse,
 } from "../types/figma";
 import { db } from "../services/db";
 import { auditConfig } from "../audit.config";
@@ -25,7 +25,7 @@ export class FigmaClient {
     }
 
     const data = await this.fetchFromApi();
-    const components = this.parseComponents(data.meta.components);
+    const components = this.parseComponents(data.meta.component_sets);
 
     await this.saveToCache(components);
     return components;
@@ -56,10 +56,13 @@ export class FigmaClient {
     });
   }
 
-  private async fetchFromApi(): Promise<FigmaApiComponentsResponse> {
-    const res = await fetch(`${FIGMA_API}/files/${this.fileKey}/components`, {
-      headers: { "X-Figma-Token": this.token },
-    });
+  private async fetchFromApi(): Promise<FigmaApiComponentSetsResponse> {
+    // Use component_sets — returns one entry per logical component (Tag, Button, Input)
+    // NOT /components which returns every individual variant state
+    const res = await fetch(
+      `${FIGMA_API}/files/${this.fileKey}/component_sets`,
+      { headers: { "X-Figma-Token": this.token } },
+    );
 
     if (!res.ok) {
       throw new Error(
@@ -74,25 +77,8 @@ export class FigmaClient {
     return res.json();
   }
 
-  private parseComponents(raw: FigmaApiComponent[]): FigmaComponent[] {
-    // Filter out variant components — these belong to a component set and
-    // represent individual states (e.g. state=hover, size=small). We only
-    // want the top-level logical components for parity matching.
-    const topLevel = raw.filter((c) => !c.component_set_id);
-
-    // Deduplicate by codeName so Button/Primary and Button/Secondary both
-    // resolve to a single "Button" entry.
-    const seen = new Set<string>();
-    const deduplicated: FigmaApiComponent[] = [];
-    for (const c of topLevel) {
-      const codeName = this.extractCodeName(c.name, c.description ?? "");
-      if (!seen.has(codeName.toLowerCase())) {
-        seen.add(codeName.toLowerCase());
-        deduplicated.push(c);
-      }
-    }
-
-    return deduplicated.map((c: FigmaApiComponent) => ({
+  private parseComponents(raw: FigmaApiComponentSet[]): FigmaComponent[] {
+    return raw.map((c: FigmaApiComponentSet) => ({
       id: c.node_id,
       key: c.key,
       name: c.name,

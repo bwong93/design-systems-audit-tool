@@ -5,6 +5,12 @@ export const auditConfig = {
     componentPaths: ["src/components", "src/patterns"],
     tokenPath: "src/theme",
     excludePaths: ["node_modules", "dist", "test/coverage", ".storybook"],
+    /** GitHub repo URL — used to generate source file links */
+    githubUrl: "https://github.com/meetearnest/nucleus",
+    /** Branch to link to on GitHub */
+    githubBranch: "main",
+    /** Storybook base URL — update to your deployed Storybook if available */
+    storybookUrl: import.meta.env.VITE_STORYBOOK_URL || "http://localhost:6006",
   },
   figma: {
     fileKey: import.meta.env.VITE_FIGMA_FILE_KEY || "",
@@ -27,7 +33,6 @@ export const auditConfig = {
     },
   },
   rules: {
-    // Enable/disable specific rules
     "figma-parity/name-match": true,
     "figma-parity/props-match": true,
     "figma-parity/variants-match": true,

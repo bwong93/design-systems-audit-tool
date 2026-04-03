@@ -55,25 +55,21 @@ export interface DriftException {
   createdAt: string;
 }
 
-/** Raw shapes returned by the Figma REST API */
-export interface FigmaApiComponent {
+/** Raw component set shape returned by GET /v1/files/:key/component_sets */
+export interface FigmaApiComponentSet {
   key: string;
   name: string;
   description: string;
   node_id: string;
   thumbnail_url?: string;
-  component_set_id?: string;
   updated_at?: string;
-  containing_frame?: {
-    name?: string;
-  };
 }
 
-/** Response shape from GET /v1/files/:key/components */
-export interface FigmaApiComponentsResponse {
+/** Response shape from GET /v1/files/:key/component_sets */
+export interface FigmaApiComponentSetsResponse {
   status: number;
   error: boolean;
   meta: {
-    components: FigmaApiComponent[];
+    component_sets: FigmaApiComponentSet[];
   };
 }

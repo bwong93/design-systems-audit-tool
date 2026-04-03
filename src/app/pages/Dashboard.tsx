@@ -6,10 +6,12 @@ import {
   CheckCircle,
   Package,
   Info,
+  ExternalLink,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuditStore } from "../../stores/audit-store";
 import { useOnboardingStore } from "../../stores/onboarding-store";
+import { githubLink, storybookLink } from "../../utils/links";
 import type { ComponentMetadata } from "../../types/component";
 
 export default function Dashboard() {
@@ -256,26 +258,31 @@ function ChecksExplained() {
             label="Missing .spec.tsx"
             good="Tests exist — component behaviour is verified"
             bad="No tests — bugs and regressions may go undetected"
+            fix="⚙ Engineer: Create {Name}.spec.tsx, wrap renders with <NucleusProvider> — see Tag.spec.tsx as a reference"
           />
           <CheckItem
             label="Missing .stories.tsx"
             good="Stories exist — component is documented in Storybook"
             bad="No stories — designers and engineers have no visual reference"
+            fix="⚙ Engineer: Create {Name}.stories.tsx with a default story and variant stories — see Tag.stories.tsx as a reference"
           />
           <CheckItem
             label="Missing index.ts"
             good="Properly exported — can be imported by consuming apps"
             bad="No index — component may not be accessible from the package"
+            fix="⚙ Engineer: Create index.ts and export the component, its props type, and any variant types"
           />
           <CheckItem
             label="No theme tokens detected"
             good="Uses theme.tokens.* — colours and spacing adapt across themes"
             bad="Hard-coded values — won't respond to theme changes or rebrands"
+            fix="⚙ Engineer: Replace hex/rgb values with theme.tokens.* or theme.colors.* — see src/theme/theme.ts for available tokens"
           />
           <CheckItem
             label="No :focus-visible styles"
             good="Keyboard focus is visible — meets WCAG 2.2 AA"
             bad="Focus styles missing — keyboard and assistive technology users affected"
+            fix="⚙ Engineer: Add &:focus-visible { outline: 2px solid; outline-offset: 2px; } to the interactive styled component — see Button.tsx as a reference"
           />
         </div>
       )}
@@ -287,16 +294,19 @@ function CheckItem({
   label,
   good,
   bad,
+  fix,
 }: {
   label: string;
   good: string;
   bad: string;
+  fix?: string;
 }) {
   return (
     <div className="py-1.5">
       <p className="font-medium text-gray-700 mb-0.5">{label}</p>
       <p className="text-green-700">✓ {good}</p>
       <p className="text-red-600">✗ {bad}</p>
+      {fix && <p className="text-blue-600 mt-0.5">🔧 {fix}</p>}
     </div>
   );
 }
@@ -390,7 +400,29 @@ function ComponentRow({ component }: { component: ComponentMetadata }) {
             </span>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <a
+            href={storybookLink(component.name)}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
+            title="Open in Storybook"
+          >
+            <ExternalLink size={13} />
+            Storybook
+          </a>
+          <a
+            href={githubLink(component.filePath)}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 transition-colors"
+            title="View source on GitHub"
+          >
+            <ExternalLink size={13} />
+            GitHub
+          </a>
           {issues.length === 0 ? (
             <span className="text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
               All checks pass

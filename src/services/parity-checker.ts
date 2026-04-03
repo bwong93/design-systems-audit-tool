@@ -6,10 +6,16 @@ import type {
   ComponentParityResult,
   CheckResult,
   ParityIssue,
+  FigmaCandidate,
 } from "../types/parity";
 import { getGrade, averageScores } from "./score-calculator";
 import { db } from "./db";
-import { findBestMatch, MATCH_AUTO, MATCH_SUGGEST } from "../utils/fuzzy-match";
+import {
+  findBestMatch,
+  findAllMatches,
+  MATCH_AUTO,
+  MATCH_SUGGEST,
+} from "../utils/fuzzy-match";
 
 /**
  * Three-layer matching resolution:
@@ -67,18 +73,41 @@ export async function runParityCheck(
   figmaComponents: FigmaComponent[],
 ): Promise<ParityReport> {
   const exceptions = await db.driftExceptions.toArray();
+  const noMatchDecisions = await db.noMatchDecisions.toArray();
+  const noMatchSet = new Map(
+    noMatchDecisions.map((d) => [d.codeComponentName.toLowerCase(), d.reason]),
+  );
 
   const components: ComponentParityResult[] = [];
   const matchedFigmaNames = new Set<string>();
 
   for (const code of codeComponents) {
+    const noMatchReason = noMatchSet.get(code.name.toLowerCase());
+
+    // User has explicitly decided this has no Figma match — skip fuzzy matching
+    if (noMatchReason) {
+      const candidates = getCandidates(code.name, figmaComponents);
+      components.push(
+        buildNoMatchResult(code, noMatchReason, candidates, exceptions),
+      );
+      continue;
+    }
+
     const { figma, matchType } = await resolveMatch(code.name, figmaComponents);
     if (figma) matchedFigmaNames.add(figma.codeName.toLowerCase());
+
+    // Collect near-miss candidates for unmatched or fuzzy-suggest components
+    const candidates =
+      matchType === "none" || matchType === "fuzzy-suggest"
+        ? getCandidates(code.name, figmaComponents, figma?.codeName)
+        : [];
+
     const result = checkComponent(
       code,
       figma ? [figma] : [],
       exceptions,
       matchType,
+      candidates,
     );
     components.push(result);
   }
@@ -92,15 +121,17 @@ export async function runParityCheck(
     (n) => !matchedFigmaNames.has(n),
   );
   const missingInFigma = [...codeNames].filter(
-    (_, i) => components[i]?.status === "missing-in-figma",
+    (_, i) =>
+      components[i]?.status === "missing-in-figma" ||
+      components[i]?.status === "needs-review",
   );
 
-  // All components contribute to the score — missing ones score 0
+  // needs-review and missing-in-figma excluded from overall score
   const overallScore = averageScores(components.map((c) => c.score));
 
-  // Coverage = % of code components that have any Figma match
+  // Coverage = % of code components that have any confirmed Figma match
   const matchedCount = components.filter(
-    (c) => c.status !== "missing-in-figma",
+    (c) => c.status !== "missing-in-figma" && c.status !== "needs-review",
   ).length;
   const coverageScore = Math.round((matchedCount / components.length) * 100);
 
@@ -123,31 +154,136 @@ export async function runParityCheck(
 
 type MatchType = "manual" | "exact" | "fuzzy-auto" | "fuzzy-suggest" | "none";
 
+/** Returns top 3 near-miss Figma candidates, excluding the current match */
+function getCandidates(
+  codeName: string,
+  figmaComponents: FigmaComponent[],
+  excludeCodeName?: string,
+): FigmaCandidate[] {
+  return findAllMatches(codeName, figmaComponents, (f) => f.codeName, 0.4)
+    .filter((m) => m.label.toLowerCase() !== excludeCodeName?.toLowerCase())
+    .slice(0, 3)
+    .map((m) => ({
+      figmaName: m.item.name,
+      figmaNodeId: m.item.id,
+      score: m.score,
+    }));
+}
+
+/** Builds a result for components the user has explicitly marked as having no Figma match */
+function buildNoMatchResult(
+  code: ComponentMetadata,
+  reason: "gap" | "intentional",
+  candidates: FigmaCandidate[],
+  exceptions: DriftException[],
+): ComponentParityResult {
+  const componentExceptions = exceptions.filter(
+    (e) => e.componentName.toLowerCase() === code.name.toLowerCase(),
+  );
+
+  const steps =
+    reason === "gap"
+      ? [
+          {
+            text: `🎨 Designer: Create a "${code.name}" component set in Figma`,
+          },
+          {
+            text: `Add variants using the pattern ${code.name}/Default, ${code.name}/Variant`,
+          },
+          { text: "Publish the library to make it available to the team" },
+        ]
+      : [
+          {
+            text: "This component is intentionally not documented in Figma",
+            isAlternative: true,
+          },
+        ];
+
+  return {
+    componentName: code.name,
+    figmaName: "",
+    score: reason === "intentional" ? 100 : 0,
+    grade: reason === "intentional" ? "Excellent" : "Critical",
+    status: reason === "intentional" ? "aligned" : "missing-in-figma",
+    matchType: "none",
+    isSuggestedMatch: false,
+    candidates,
+    checks: {
+      nameMatch: skipCheck(
+        reason === "intentional"
+          ? "Marked as intentionally unmapped."
+          : "Marked as a gap — needs Figma documentation.",
+      ),
+      propsMatch: skipCheck("No Figma component to compare."),
+      documentationMatch: skipCheck("No Figma component to compare."),
+    },
+    issues:
+      reason === "gap"
+        ? [
+            {
+              severity: "critical" as const,
+              message: `"${code.name}" has no Figma counterpart and has been marked as a gap.`,
+              owner: "designer" as const,
+              steps,
+            },
+          ]
+        : [],
+    approvedExceptionCount: componentExceptions.length,
+  };
+}
+
 function checkComponent(
   code: ComponentMetadata,
   figmaMatches: FigmaComponent[],
   exceptions: DriftException[],
   matchType: MatchType = "none",
+  candidates: FigmaCandidate[] = [],
 ): ComponentParityResult {
   const componentExceptions = exceptions.filter(
     (e) => e.componentName.toLowerCase() === code.name.toLowerCase(),
   );
 
   if (figmaMatches.length === 0) {
+    const hasCandidates = candidates.length > 0;
     return {
       componentName: code.name,
       figmaName: "",
       score: 0,
       grade: "Critical",
-      status: "missing-in-figma",
+      status: hasCandidates ? "needs-review" : "missing-in-figma",
       matchType,
       isSuggestedMatch: false,
+      candidates,
       checks: {
         nameMatch: failCheck("No matching Figma component found.", [
           {
             severity: "critical",
-            message: `"${code.name}" exists in code but has no counterpart in Figma.`,
-            remediation: `Add a "${code.name}" component to the Figma library using the naming convention "${code.name}/Variant", or create a manual mapping in Settings.`,
+            message: hasCandidates
+              ? `"${code.name}" has potential Figma matches — review candidates below.`
+              : `"${code.name}" exists in code but has no counterpart in Figma.`,
+            owner: "designer",
+            steps: hasCandidates
+              ? [
+                  { text: "Review the candidate matches below" },
+                  {
+                    text: "Confirm the correct match or mark as gap / intentional",
+                  },
+                ]
+              : [
+                  {
+                    text: `Create a new component set named "${code.name}" in Figma`,
+                  },
+                  {
+                    text: `Add variants using the pattern ${code.name}/Default, ${code.name}/Variant`,
+                  },
+                  {
+                    text: "Publish the library to make it available to the team",
+                  },
+                  {
+                    text: "OR: Mark as intentional if this component has no Figma spec by design",
+                    isAlternative: true,
+                  },
+                ],
           },
         ]),
         propsMatch: skipCheck("Skipped — no Figma component to compare."),
@@ -183,7 +319,7 @@ function checkComponent(
   ];
 
   const status = isSuggestedMatch
-    ? "issues" // Suggested matches are always shown as needing review
+    ? "needs-review"
     : score >= 90
       ? "aligned"
       : score >= 60
@@ -193,11 +329,13 @@ function checkComponent(
   return {
     componentName: code.name,
     figmaName: figma.name,
+    figmaNodeId: figma.id,
     score,
     grade,
     status,
     matchType,
     isSuggestedMatch,
+    candidates,
     checks: {
       nameMatch: nameCheck,
       propsMatch: propsCheck,
@@ -240,7 +378,13 @@ function checkName(
         {
           severity: "minor",
           message: `Unconfirmed fuzzy match between "${codeName}" (code) and "${figmaCodeName}" (Figma).`,
-          remediation: `Go to Settings → Component Mappings to confirm this match or link to the correct Figma component.`,
+          owner: "both",
+          steps: [
+            { text: "Go to Settings → Component Mappings" },
+            {
+              text: `Confirm "${figmaCodeName}" is the correct Figma counterpart for "${codeName}", or select the correct one from the dropdown`,
+            },
+          ],
           field: "name",
         },
       ],
@@ -265,7 +409,21 @@ function checkName(
       {
         severity: "minor",
         message: `Name convention differs: code uses "${codeName}", Figma top-level is "${figmaCodeName}".`,
-        remediation: `Rename the Figma component's top level to "${codeName}", or add @code ${codeName} to its description.`,
+        owner: "both",
+        steps: [
+          {
+            text: `🎨 Designer: Rename the Figma component's top level to "${codeName}"`,
+          },
+          {
+            text: `OR: Add @code ${codeName} to the Figma component's description field`,
+            isAlternative: true,
+          },
+          { text: "⚙ Engineer: No code change needed" },
+          {
+            text: `OR: Approve as "Naming Convention" drift if this difference is intentional`,
+            isAlternative: true,
+          },
+        ],
         field: "name",
       },
     ],
@@ -304,7 +462,17 @@ function checkProps(
       issues.push({
         severity: "major",
         message: `Figma property "${figmaProp.name}" has no matching prop in code.`,
-        remediation: `Add a "${figmaProp.name}" prop to the ${code.name} component, or approve as drift if the naming intentionally differs.`,
+        owner: "engineer",
+        steps: [
+          { text: `Open ${code.name}.tsx`, filePath: code.filePath },
+          { text: `Add \`${figmaProp.name}?\` to ${code.name}Props` },
+          { text: "Implement the visual behavior in the styled component" },
+          {
+            text: `OR: Approve as "Naming Convention" drift if this prop is named differently in code`,
+            isAlternative: true,
+          },
+        ],
+        referenceFile: `/Users/bentley/Dev/nucleus/src/components/Tag/Tag.tsx`,
         field: figmaProp.name,
       });
     }
@@ -337,8 +505,16 @@ function checkDocumentation(
         {
           severity: "minor",
           message: "No description in Figma and no JSDoc comments in code.",
-          remediation:
-            "Add a component description in Figma and JSDoc comments to props in code.",
+          owner: "both",
+          steps: [
+            {
+              text: "🎨 Designer: Add a description to the Figma component explaining its purpose and usage",
+            },
+            {
+              text: `⚙ Engineer: Add JSDoc comments to props in ${code.name}Props`,
+              filePath: code.filePath,
+            },
+          ],
         },
       ],
     };
@@ -353,8 +529,13 @@ function checkDocumentation(
         {
           severity: "minor",
           message: "Figma component has no description.",
-          remediation:
-            "Add a description to the Figma component explaining its purpose and usage.",
+          owner: "designer",
+          steps: [
+            { text: "Open the component in Figma" },
+            {
+              text: "Add a description explaining the component's purpose, usage, and any key behaviors",
+            },
+          ],
         },
       ],
     };
@@ -369,8 +550,15 @@ function checkDocumentation(
         {
           severity: "minor",
           message: "Code props have no JSDoc descriptions.",
-          remediation:
-            "Add JSDoc comments to props in the component interface.",
+          owner: "engineer",
+          steps: [
+            {
+              text: `Open ${code.name}Props in ${code.name}.tsx`,
+              filePath: code.filePath,
+            },
+            { text: "Add JSDoc comments above each prop (/** description */)" },
+          ],
+          referenceFile: `/Users/bentley/Dev/nucleus/src/components/Tag/Tag.tsx`,
         },
       ],
     };
