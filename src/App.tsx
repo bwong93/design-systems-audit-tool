@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./app/layouts/Layout";
 import Dashboard from "./app/pages/Dashboard";
@@ -7,9 +8,15 @@ import Accessibility from "./app/pages/Accessibility";
 import Tokens from "./app/pages/Tokens";
 import Settings from "./app/pages/Settings";
 import { useOnboardingStore } from "./stores/onboarding-store";
+import { useAuditStore } from "./stores/audit-store";
 
 function App() {
   const { completed } = useOnboardingStore();
+  const hydrate = useAuditStore((s) => s.hydrate);
+
+  useEffect(() => {
+    if (completed) hydrate();
+  }, [completed, hydrate]);
 
   if (!completed) {
     return (

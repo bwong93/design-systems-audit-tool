@@ -17,6 +17,7 @@ interface AuditStore {
   figmaError: string | null;
   error: string | null;
   startScan: () => Promise<void>;
+  hydrate: () => Promise<void>;
   clearResults: () => void;
 }
 
@@ -137,6 +138,36 @@ export const useAuditStore = create<AuditStore>((set) => ({
         progressLabel: "",
         error: error instanceof Error ? error.message : "Scan failed",
       });
+    }
+  },
+
+  hydrate: async () => {
+    // Load the most recent scan result from IndexedDB
+    const latestScan = await db.scanResults.orderBy("timestamp").last();
+    if (!latestScan) return;
+
+    // Normalise any fields added after the scan was saved (avoids undefined errors)
+    const components = latestScan.components.map((c) => ({
+      ...c,
+      hardcodedColors: c.hardcodedColors ?? [],
+      hasKeyboardSupport: c.hasKeyboardSupport ?? false,
+    }));
+    const results = { ...latestScan, components };
+
+    // Load cached Figma components if available
+    const figmaCache = await db.figmaCache.orderBy("fetchedAt").last();
+    const figmaComponents = figmaCache?.components ?? [];
+
+    set({ results, figmaComponents });
+
+    // Re-run parity check to reconstruct the report
+    if (figmaComponents.length > 0) {
+      try {
+        const parityReport = await runParityCheck(components, figmaComponents);
+        set({ parityReport });
+      } catch {
+        // Parity check failed — results still shown without parity data
+      }
     }
   },
 
