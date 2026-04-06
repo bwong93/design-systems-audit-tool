@@ -83,11 +83,11 @@ export default function ParityView() {
   if (!results) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-96 text-center">
-        <GitCompare size={40} className="text-neutral-50 mb-4" />
-        <h2 className="text-lg font-semibold text-neutral-90 mb-2">
+        <GitCompare size={40} className="text-earnest-50 mb-4" />
+        <h2 className="text-lg font-semibold text-earnest-90 mb-2">
           No scan results yet
         </h2>
-        <p className="text-sm text-neutral-80">
+        <p className="text-sm text-earnest-80">
           Run an audit from the Dashboard first.
         </p>
       </div>
@@ -97,11 +97,11 @@ export default function ParityView() {
   if (!parityReport) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-96 text-center">
-        <GitCompare size={40} className="text-neutral-50 mb-4" />
-        <h2 className="text-lg font-semibold text-neutral-90 mb-2">
+        <GitCompare size={40} className="text-earnest-50 mb-4" />
+        <h2 className="text-lg font-semibold text-earnest-90 mb-2">
           No Figma data available
         </h2>
-        <p className="text-sm text-neutral-80">
+        <p className="text-sm text-earnest-80">
           Check your Figma connection in Settings and re-run the audit.
         </p>
       </div>
@@ -143,12 +143,12 @@ export default function ParityView() {
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-neutral-100">DS Parity</h1>
-            <p className="text-neutral-80 mt-1 text-sm">
+            <h1 className="text-3xl font-bold text-earnest-100">DS Parity</h1>
+            <p className="text-earnest-80 mt-1 text-sm">
               Compare Figma components against code implementations, surface
               mismatches, and track intentional differences.
             </p>
-            <p className="text-neutral-60 mt-0.5 text-xs">
+            <p className="text-earnest-60 mt-0.5 text-xs">
               {parityReport.totalCodeComponents} code components ·{" "}
               {parityReport.totalFigmaComponents} Figma components
             </p>
@@ -212,9 +212,9 @@ export default function ParityView() {
         />
 
         {/* Component list */}
-        <div className="bg-white rounded-lg border border-neutral-30">
-          <div className="px-6 py-4 border-b border-neutral-30">
-            <h2 className="font-semibold text-neutral-100">Components</h2>
+        <div className="bg-white rounded-lg border border-earnest-30">
+          <div className="px-6 py-4 border-b border-earnest-30">
+            <h2 className="font-semibold text-earnest-100">Components</h2>
           </div>
           <div className="divide-y divide-gray-100">
             {components.map((component) => (
@@ -306,27 +306,27 @@ function ActionItemsPanel({
     .join(" · ");
 
   return (
-    <div className="bg-white rounded-lg border border-neutral-30 mb-4">
+    <div className="bg-white rounded-lg border border-earnest-30 mb-4">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full px-6 py-4 flex items-center gap-3 text-left hover:bg-neutral-10 transition-colors rounded-lg"
+        className="w-full px-6 py-4 flex items-center gap-3 text-left hover:bg-earnest-10 transition-colors rounded-lg"
       >
-        <ListTodo size={16} className="text-neutral-60 shrink-0" />
-        <span className="text-sm font-semibold text-neutral-100">
+        <ListTodo size={16} className="text-earnest-60 shrink-0" />
+        <span className="text-sm font-semibold text-earnest-100">
           Action items
         </span>
-        <span className="text-xs text-neutral-60">{summary}</span>
+        <span className="text-xs text-earnest-60">{summary}</span>
         <span className="ml-auto">
           {open ? (
-            <ChevronUp size={14} className="text-neutral-60" />
+            <ChevronUp size={14} className="text-earnest-60" />
           ) : (
-            <ChevronDown size={14} className="text-neutral-60" />
+            <ChevronDown size={14} className="text-earnest-60" />
           )}
         </span>
       </button>
 
       {open && (
-        <div className="border-t border-neutral-30 px-6 py-4 space-y-5">
+        <div className="border-t border-earnest-30 px-6 py-4 space-y-5">
           {(
             [
               ["quick-win", quickWins],
@@ -358,20 +358,20 @@ function ActionItemsPanel({
                           <p className="text-xs font-medium text-gray-800 truncate">
                             {item.label}
                           </p>
-                          <p className="text-xs text-neutral-60 mt-0.5">
+                          <p className="text-xs text-earnest-60 mt-0.5">
                             {item.sublabel}
                           </p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-xs text-neutral-60 bg-white border border-neutral-30 px-1.5 py-0.5 rounded">
+                          <span className="text-xs text-earnest-60 bg-white border border-earnest-30 px-1.5 py-0.5 rounded">
                             {OWNER_LABEL[item.owner]}
                           </span>
                           {item.potentialGain > 0 && (
-                            <span className="text-xs text-neutral-60">
+                            <span className="text-xs text-earnest-60">
                               +{item.potentialGain} pts
                             </span>
                           )}
-                          <ExternalLink size={11} className="text-neutral-50" />
+                          <ExternalLink size={11} className="text-earnest-50" />
                         </div>
                       </button>
                     ))}
@@ -464,10 +464,10 @@ function MissingInCodeSection({
   const resolved = items.filter((i) => decisions[i.codeName.toLowerCase()]);
 
   return (
-    <div className="mt-6 bg-white rounded-lg border border-neutral-30">
-      <div className="px-6 py-4 border-b border-neutral-30">
-        <h2 className="font-semibold text-neutral-100">In Figma, not in code</h2>
-        <p className="text-xs text-neutral-80 mt-0.5">
+    <div className="mt-6 bg-white rounded-lg border border-earnest-30">
+      <div className="px-6 py-4 border-b border-earnest-30">
+        <h2 className="font-semibold text-earnest-100">In Figma, not in code</h2>
+        <p className="text-xs text-earnest-80 mt-0.5">
           These Figma components have no matching code implementation. Link them
           to an existing component or mark as intentional.
         </p>
@@ -487,7 +487,7 @@ function MissingInCodeSection({
               className="px-6 py-3 flex items-center gap-4"
             >
               <div className="w-44 shrink-0">
-                <p className="text-sm font-medium text-neutral-100">
+                <p className="text-sm font-medium text-earnest-100">
                   {item.figmaName}
                 </p>
                 {figmaFileKey && item.figmaNodeId && (
@@ -495,7 +495,7 @@ function MissingInCodeSection({
                     href={figmaLink(figmaFileKey, item.figmaNodeId)}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-1 text-xs text-neutral-60 hover:text-violet-600 transition-colors mt-0.5"
+                    className="flex items-center gap-1 text-xs text-earnest-60 hover:text-violet-600 transition-colors mt-0.5"
                   >
                     <ExternalLink size={11} />
                     Figma
@@ -512,7 +512,7 @@ function MissingInCodeSection({
                       [item.codeName]: e.target.value,
                     }))
                   }
-                  className="flex-1 px-2 py-1.5 text-xs border border-neutral-30 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500 bg-white"
+                  className="flex-1 px-2 py-1.5 text-xs border border-earnest-30 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500 bg-white"
                 >
                   <option value="">— Link to code component —</option>
                   {codeComponentNames.map((name) => (
@@ -532,7 +532,7 @@ function MissingInCodeSection({
 
               <button
                 onClick={() => handleIntentional(item)}
-                className="text-xs text-neutral-60 hover:text-neutral-90 transition-colors shrink-0 whitespace-nowrap"
+                className="text-xs text-earnest-60 hover:text-earnest-90 transition-colors shrink-0 whitespace-nowrap"
               >
                 Intentional
               </button>
@@ -542,9 +542,9 @@ function MissingInCodeSection({
       )}
 
       {resolved.length > 0 && (
-        <div className="border-t border-neutral-30">
-          <div className="px-6 py-2 bg-neutral-10">
-            <p className="text-xs font-medium text-neutral-60 uppercase tracking-wide">
+        <div className="border-t border-earnest-30">
+          <div className="px-6 py-2 bg-earnest-10">
+            <p className="text-xs font-medium text-earnest-60 uppercase tracking-wide">
               Resolved ({resolved.length})
             </p>
           </div>
@@ -554,15 +554,15 @@ function MissingInCodeSection({
                 key={item.codeName}
                 className="px-6 py-3 flex items-center gap-3"
               >
-                <span className="text-xs text-neutral-50 w-44 shrink-0 font-medium">
+                <span className="text-xs text-earnest-50 w-44 shrink-0 font-medium">
                   {item.figmaName}
                 </span>
-                <span className="text-xs text-neutral-60 bg-neutral-20 px-2 py-0.5 rounded-full">
+                <span className="text-xs text-earnest-60 bg-earnest-20 px-2 py-0.5 rounded-full">
                   Intentional — no code needed
                 </span>
                 <button
                   onClick={() => handleRemoveDecision(item)}
-                  className="ml-auto text-xs text-neutral-50 hover:text-neutral-80 transition-colors"
+                  className="ml-auto text-xs text-earnest-50 hover:text-earnest-80 transition-colors"
                 >
                   Remove
                 </button>
@@ -681,19 +681,19 @@ function ScoreBadge({
       <p className="text-3xl font-bold">{score}</p>
       <p className="text-sm font-medium mt-0.5">{grade}</p>
       {showTooltip && (tooltip || legend) && (
-        <div className="absolute top-full mt-2 right-0 z-10 w-72 bg-neutral-100 text-white text-xs rounded-lg p-4 shadow-lg text-left font-normal normal-case tracking-normal space-y-2.5">
-          {tooltip && <p className="text-neutral-50">{tooltip}</p>}
+        <div className="absolute top-full mt-2 right-0 z-10 w-72 bg-earnest-100 text-white text-xs rounded-lg p-4 shadow-lg text-left font-normal normal-case tracking-normal space-y-2.5">
+          {tooltip && <p className="text-earnest-50">{tooltip}</p>}
           {legend && (
             <div className="space-y-1.5 border-t border-gray-700 pt-2.5">
               {legend.map((row) => (
                 <div key={row.grade} className="flex gap-2">
-                  <span className="text-neutral-60 w-14 shrink-0">
+                  <span className="text-earnest-60 w-14 shrink-0">
                     {row.range}
                   </span>
                   <span className="text-gray-200 font-medium w-16 shrink-0">
                     {row.grade}
                   </span>
-                  <span className="text-neutral-60">{row.meaning}</span>
+                  <span className="text-earnest-60">{row.meaning}</span>
                 </div>
               ))}
             </div>
@@ -719,23 +719,23 @@ function StatCard({
 }) {
   const [showTooltip, setShowTooltip] = useState(false);
   return (
-    <div className="bg-white rounded-lg border border-neutral-30 p-4 flex items-center gap-3">
+    <div className="bg-white rounded-lg border border-earnest-30 p-4 flex items-center gap-3">
       <div className={`${bg} p-2 rounded-lg shrink-0`}>{icon}</div>
       <div className="flex-1 min-w-0">
-        <p className="text-xl font-bold text-neutral-100">{value}</p>
+        <p className="text-xl font-bold text-earnest-100">{value}</p>
         <div className="flex items-center gap-1">
-          <p className="text-xs text-neutral-80">{label}</p>
+          <p className="text-xs text-earnest-80">{label}</p>
           {tooltip && (
             <div className="relative">
               <button
                 onMouseEnter={() => setShowTooltip(true)}
                 onMouseLeave={() => setShowTooltip(false)}
-                className="text-neutral-50 hover:text-neutral-60 transition-colors"
+                className="text-earnest-50 hover:text-earnest-60 transition-colors"
               >
                 <Info size={11} />
               </button>
               {showTooltip && (
-                <div className="absolute top-5 left-0 z-10 w-64 bg-neutral-100 text-white text-xs rounded-lg p-3 shadow-lg">
+                <div className="absolute top-5 left-0 z-10 w-64 bg-earnest-100 text-white text-xs rounded-lg p-3 shadow-lg">
                   {tooltip}
                 </div>
               )}
@@ -782,7 +782,7 @@ function ComponentParityRow({
   return (
     <div
       id={`component-row-${component.componentName}`}
-      className="hover:bg-neutral-10 transition-colors"
+      className="hover:bg-earnest-10 transition-colors"
     >
       <button
         onClick={() => setExpanded(!expanded)}
@@ -791,11 +791,11 @@ function ComponentParityRow({
         <div className="flex items-center gap-3">
           <div className={`w-2 h-2 rounded-full shrink-0 ${dotClass}`} />
           <div>
-            <span className="text-sm font-medium text-neutral-100">
+            <span className="text-sm font-medium text-earnest-100">
               {component.componentName}
             </span>
             {component.figmaName && !isNeedsReview && (
-              <span className="text-xs text-neutral-60 ml-2">
+              <span className="text-xs text-earnest-60 ml-2">
                 ← {component.figmaName}
               </span>
             )}
@@ -806,7 +806,7 @@ function ComponentParityRow({
             )}
           </div>
           {component.approvedExceptionCount > 0 && (
-            <span className="text-xs text-neutral-60 bg-neutral-20 px-2 py-0.5 rounded-full">
+            <span className="text-xs text-earnest-60 bg-earnest-20 px-2 py-0.5 rounded-full">
               {component.approvedExceptionCount} approved
             </span>
           )}
@@ -822,7 +822,7 @@ function ComponentParityRow({
             target="_blank"
             rel="noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 text-xs text-neutral-60 hover:text-orange-500 transition-colors"
+            className="flex items-center gap-1 text-xs text-earnest-60 hover:text-orange-500 transition-colors"
             title="Open in Storybook"
           >
             <ExternalLink size={13} />
@@ -834,7 +834,7 @@ function ComponentParityRow({
               target="_blank"
               rel="noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="flex items-center gap-1 text-xs text-neutral-60 hover:text-violet-600 transition-colors"
+              className="flex items-center gap-1 text-xs text-earnest-60 hover:text-violet-600 transition-colors"
               title="Open in Figma"
             >
               <ExternalLink size={13} />
@@ -847,9 +847,9 @@ function ComponentParityRow({
             {component.score} · {component.grade}
           </span>
           {expanded ? (
-            <ChevronUp size={14} className="text-neutral-60" />
+            <ChevronUp size={14} className="text-earnest-60" />
           ) : (
-            <ChevronDown size={14} className="text-neutral-60" />
+            <ChevronDown size={14} className="text-earnest-60" />
           )}
         </div>
       </button>
@@ -1003,13 +1003,13 @@ function FigmaMatchControl({
   // Explicitly marked: gap or intentional
   if (noMatchDecision) {
     return (
-      <div className="flex items-center gap-2 py-1 border-b border-neutral-30 pb-3">
-        <span className="text-xs text-neutral-60 w-24 shrink-0">Figma match</span>
+      <div className="flex items-center gap-2 py-1 border-b border-earnest-30 pb-3">
+        <span className="text-xs text-earnest-60 w-24 shrink-0">Figma match</span>
         <span
           className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
             noMatchDecision.reason === "gap"
               ? "bg-red-50 text-red-700 border-red-200"
-              : "bg-neutral-20 text-neutral-80 border-neutral-30"
+              : "bg-earnest-20 text-earnest-80 border-earnest-30"
           }`}
         >
           {noMatchDecision.reason === "gap"
@@ -1018,7 +1018,7 @@ function FigmaMatchControl({
         </span>
         <button
           onClick={handleRemoveDecision}
-          className="ml-auto text-xs text-neutral-60 hover:text-neutral-80 transition-colors"
+          className="ml-auto text-xs text-earnest-60 hover:text-earnest-80 transition-colors"
         >
           Remove
         </button>
@@ -1029,12 +1029,12 @@ function FigmaMatchControl({
   // Confirmed match (aligned / issues / critical)
   if (hasConfirmedMatch) {
     return (
-      <div className="border-b border-neutral-30 pb-3 space-y-2">
+      <div className="border-b border-earnest-30 pb-3 space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-neutral-60 w-24 shrink-0">
+          <span className="text-xs text-earnest-60 w-24 shrink-0">
             Figma match
           </span>
-          <span className="text-xs font-medium text-neutral-90">
+          <span className="text-xs font-medium text-earnest-90">
             {component.figmaName}
           </span>
           {figmaFileKey && component.figmaNodeId && (
@@ -1042,7 +1042,7 @@ function FigmaMatchControl({
               href={figmaLink(figmaFileKey, component.figmaNodeId)}
               target="_blank"
               rel="noreferrer"
-              className="text-neutral-50 hover:text-violet-600 transition-colors"
+              className="text-earnest-50 hover:text-violet-600 transition-colors"
             >
               <ExternalLink size={11} />
             </a>
@@ -1050,13 +1050,13 @@ function FigmaMatchControl({
           <div className="ml-auto flex items-center gap-3">
             <button
               onClick={() => setShowSelect(!showSelect)}
-              className="text-xs text-neutral-60 hover:text-neutral-90 transition-colors"
+              className="text-xs text-earnest-60 hover:text-earnest-90 transition-colors"
             >
               Change
             </button>
             <button
               onClick={handleRemoveMapping}
-              className="text-xs text-neutral-60 hover:text-red-500 transition-colors"
+              className="text-xs text-earnest-60 hover:text-red-500 transition-colors"
             >
               Remove
             </button>
@@ -1079,9 +1079,9 @@ function FigmaMatchControl({
   // Needs review — fuzzy suggest with candidates
   if (component.status === "needs-review" && component.candidates.length > 0) {
     return (
-      <div className="border-b border-neutral-30 pb-3 space-y-2">
+      <div className="border-b border-earnest-30 pb-3 space-y-2">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-neutral-60 w-24 shrink-0">
+          <span className="text-xs text-earnest-60 w-24 shrink-0">
             Figma match
           </span>
           <span className="text-xs text-amber-600 font-medium">
@@ -1115,7 +1115,7 @@ function FigmaMatchControl({
                         href={figmaLink(figmaFileKey, candidate.figmaNodeId)}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-neutral-50 hover:text-violet-600 transition-colors shrink-0"
+                        className="text-earnest-50 hover:text-violet-600 transition-colors shrink-0"
                       >
                         <ExternalLink size={10} />
                       </a>
@@ -1128,7 +1128,7 @@ function FigmaMatchControl({
                         style={{ width: `${pct}%` }}
                       />
                     </div>
-                    <span className="text-xs text-neutral-60">{pct}%</span>
+                    <span className="text-xs text-earnest-60">{pct}%</span>
                   </div>
                 </div>
                 <button
@@ -1155,21 +1155,21 @@ function FigmaMatchControl({
             <div className="flex items-center gap-3 pt-1">
               <button
                 onClick={() => setShowSelect(true)}
-                className="text-xs text-neutral-60 hover:text-neutral-90 transition-colors"
+                className="text-xs text-earnest-60 hover:text-earnest-90 transition-colors"
               >
                 Pick a different match
               </button>
-              <span className="text-neutral-50">·</span>
+              <span className="text-earnest-50">·</span>
               <button
                 onClick={() => handleNoMatch("gap")}
-                className="text-xs text-neutral-60 hover:text-red-600 transition-colors"
+                className="text-xs text-earnest-60 hover:text-red-600 transition-colors"
               >
                 Mark as gap
               </button>
-              <span className="text-neutral-50">·</span>
+              <span className="text-earnest-50">·</span>
               <button
                 onClick={() => handleNoMatch("intentional")}
-                className="text-xs text-neutral-60 hover:text-neutral-90 transition-colors"
+                className="text-xs text-earnest-60 hover:text-earnest-90 transition-colors"
               >
                 Intentional
               </button>
@@ -1182,10 +1182,10 @@ function FigmaMatchControl({
 
   // Missing in Figma — no match, no candidates
   return (
-    <div className="border-b border-neutral-30 pb-3 space-y-2">
+    <div className="border-b border-earnest-30 pb-3 space-y-2">
       <div className="flex items-center gap-2">
-        <span className="text-xs text-neutral-60 w-24 shrink-0">Figma match</span>
-        <span className="text-xs text-neutral-60">No Figma component found</span>
+        <span className="text-xs text-earnest-60 w-24 shrink-0">Figma match</span>
+        <span className="text-xs text-earnest-60">No Figma component found</span>
       </div>
       <div className="pl-24">
         {showSelect ? (
@@ -1205,17 +1205,17 @@ function FigmaMatchControl({
             >
               Link Figma component
             </button>
-            <span className="text-neutral-50">·</span>
+            <span className="text-earnest-50">·</span>
             <button
               onClick={() => handleNoMatch("gap")}
-              className="text-xs text-neutral-60 hover:text-red-600 transition-colors"
+              className="text-xs text-earnest-60 hover:text-red-600 transition-colors"
             >
               Mark as gap
             </button>
-            <span className="text-neutral-50">·</span>
+            <span className="text-earnest-50">·</span>
             <button
               onClick={() => handleNoMatch("intentional")}
-              className="text-xs text-neutral-60 hover:text-neutral-90 transition-colors"
+              className="text-xs text-earnest-60 hover:text-earnest-90 transition-colors"
             >
               Intentional
             </button>
@@ -1246,7 +1246,7 @@ function ManualSelect({
       <select
         value={selectedFigmaName}
         onChange={(e) => onSelect(e.target.value)}
-        className="flex-1 px-2 py-1.5 text-xs border border-neutral-30 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500 bg-white"
+        className="flex-1 px-2 py-1.5 text-xs border border-earnest-30 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500 bg-white"
       >
         <option value="">— Select Figma component —</option>
         {figmaNames.map((name) => (
@@ -1264,7 +1264,7 @@ function ManualSelect({
       </button>
       <button
         onClick={onCancel}
-        className="text-xs text-neutral-60 hover:text-neutral-80 transition-colors"
+        className="text-xs text-earnest-60 hover:text-earnest-80 transition-colors"
       >
         Cancel
       </button>
@@ -1276,10 +1276,10 @@ function PropsComparison({ propDetails }: { propDetails: PropDetail[] }) {
   const matched = propDetails.filter((p) => p.matched).length;
 
   return (
-    <div className="border border-neutral-30 rounded-lg overflow-hidden">
-      <div className="px-3 py-2 bg-neutral-10 border-b border-neutral-30 flex items-center justify-between">
-        <span className="text-xs font-medium text-neutral-80">Props</span>
-        <span className="text-xs text-neutral-60">
+    <div className="border border-earnest-30 rounded-lg overflow-hidden">
+      <div className="px-3 py-2 bg-earnest-10 border-b border-earnest-30 flex items-center justify-between">
+        <span className="text-xs font-medium text-earnest-80">Props</span>
+        <span className="text-xs text-earnest-60">
           {matched} of {propDetails.length} matched
         </span>
       </div>
@@ -1292,7 +1292,7 @@ function PropsComparison({ propDetails }: { propDetails: PropDetail[] }) {
             <span
               className={`mt-0.5 shrink-0 text-xs font-bold ${
                 prop.approved
-                  ? "text-neutral-50"
+                  ? "text-earnest-50"
                   : prop.matched
                     ? "text-green-500"
                     : "text-red-400"
@@ -1302,18 +1302,18 @@ function PropsComparison({ propDetails }: { propDetails: PropDetail[] }) {
             </span>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <code className="text-xs font-mono text-neutral-90">
+                <code className="text-xs font-mono text-earnest-90">
                   {prop.figmaName}
                 </code>
                 {prop.codePropName &&
                   prop.codePropName.toLowerCase() !==
                     prop.figmaName.toLowerCase() && (
-                    <span className="text-xs text-neutral-60">
+                    <span className="text-xs text-earnest-60">
                       → <code className="font-mono">{prop.codePropName}</code>
                     </span>
                   )}
                 {prop.approved && (
-                  <span className="text-xs text-neutral-60 italic">
+                  <span className="text-xs text-earnest-60 italic">
                     approved drift
                   </span>
                 )}
@@ -1322,7 +1322,7 @@ function PropsComparison({ propDetails }: { propDetails: PropDetail[] }) {
                 )}
               </div>
               {prop.figmaValues.length > 0 && (
-                <p className="text-xs text-neutral-60 mt-0.5 truncate">
+                <p className="text-xs text-earnest-60 mt-0.5 truncate">
                   {prop.figmaValues.join(" | ")}
                 </p>
               )}
@@ -1345,7 +1345,7 @@ const OWNER_BADGE: Record<string, { label: string; className: string }> = {
   },
   both: {
     label: "Both",
-    className: "bg-neutral-20 text-neutral-80 border-neutral-30",
+    className: "bg-earnest-20 text-earnest-80 border-earnest-30",
   },
 };
 
@@ -1365,12 +1365,12 @@ function IssueRow({
       ? "text-red-600"
       : issue.severity === "major"
         ? "text-amber-600"
-        : "text-neutral-80";
+        : "text-earnest-80";
 
   const ownerBadge = OWNER_BADGE[issue.owner] ?? OWNER_BADGE.both;
 
   return (
-    <div className="bg-neutral-10 rounded-lg p-3 space-y-2">
+    <div className="bg-earnest-10 rounded-lg p-3 space-y-2">
       {/* Header row */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
@@ -1385,7 +1385,7 @@ function IssueRow({
             {ownerBadge.label}
           </span>
           {issue.field && (
-            <code className="text-xs bg-gray-200 text-neutral-90 px-1.5 py-0.5 rounded">
+            <code className="text-xs bg-gray-200 text-earnest-90 px-1.5 py-0.5 rounded">
               {issue.field}
             </code>
           )}
@@ -1399,7 +1399,7 @@ function IssueRow({
           </button>
           <button
             onClick={onRevoke}
-            className="text-neutral-60 hover:text-neutral-80"
+            className="text-earnest-60 hover:text-earnest-80"
             title="Revoke exception"
           >
             <Undo2 size={13} />
@@ -1408,7 +1408,7 @@ function IssueRow({
       </div>
 
       {/* Message */}
-      <p className="text-xs text-neutral-90">{issue.message}</p>
+      <p className="text-xs text-earnest-90">{issue.message}</p>
 
       {/* Steps */}
       {issue.steps.length > 0 && (
@@ -1416,13 +1416,13 @@ function IssueRow({
           {issue.steps.map((step, i) => (
             <li
               key={i}
-              className={`text-xs flex items-start gap-1.5 ${step.isAlternative ? "text-neutral-60 italic" : "text-neutral-80"}`}
+              className={`text-xs flex items-start gap-1.5 ${step.isAlternative ? "text-earnest-60 italic" : "text-earnest-80"}`}
             >
               {!step.isAlternative && (
-                <span className="shrink-0 w-4 text-neutral-60">{i + 1}.</span>
+                <span className="shrink-0 w-4 text-earnest-60">{i + 1}.</span>
               )}
               {step.isAlternative && (
-                <span className="shrink-0 text-neutral-50 ml-4">↳</span>
+                <span className="shrink-0 text-earnest-50 ml-4">↳</span>
               )}
               <span>
                 {step.text}
@@ -1447,7 +1447,7 @@ function IssueRow({
 
       {/* Reference file */}
       {issue.referenceFile && (
-        <p className="text-xs text-neutral-60">
+        <p className="text-xs text-earnest-60">
           Reference:{" "}
           <a
             href={githubLink(issue.referenceFile)}
@@ -1496,20 +1496,20 @@ function ApproveDriftDialog({
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-        <h3 className="font-semibold text-neutral-100 mb-1">Approve Drift</h3>
-        <p className="text-sm text-neutral-80 mb-4">
-          <span className="font-medium text-neutral-90">{componentName}</span>
+        <h3 className="font-semibold text-earnest-100 mb-1">Approve Drift</h3>
+        <p className="text-sm text-earnest-80 mb-4">
+          <span className="font-medium text-earnest-90">{componentName}</span>
           {issue.field && (
             <>
               {" · "}
-              <code className="text-xs bg-neutral-20 px-1 py-0.5 rounded">
+              <code className="text-xs bg-earnest-20 px-1 py-0.5 rounded">
                 {issue.field}
               </code>
             </>
           )}
         </p>
 
-        <p className="text-xs font-medium text-neutral-80 uppercase tracking-wide mb-2">
+        <p className="text-xs font-medium text-earnest-80 uppercase tracking-wide mb-2">
           Reason for approving
         </p>
         <div className="space-y-2 mb-6">
@@ -1520,11 +1520,11 @@ function ApproveDriftDialog({
               className={`w-full text-left px-3 py-2.5 rounded-lg border text-sm transition-colors ${
                 selectedReason === r.value
                   ? "border-primary-500 bg-primary-50 text-primary-800"
-                  : "border-neutral-30 hover:border-gray-300 text-neutral-90"
+                  : "border-earnest-30 hover:border-gray-300 text-earnest-90"
               }`}
             >
               <p className="font-medium">{r.label}</p>
-              <p className="text-xs text-neutral-60 mt-0.5">{r.description}</p>
+              <p className="text-xs text-earnest-60 mt-0.5">{r.description}</p>
             </button>
           ))}
         </div>
@@ -1532,7 +1532,7 @@ function ApproveDriftDialog({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 px-4 py-2 border border-neutral-30 rounded-lg text-sm text-neutral-80 hover:bg-neutral-10"
+            className="flex-1 px-4 py-2 border border-earnest-30 rounded-lg text-sm text-earnest-80 hover:bg-earnest-10"
           >
             Cancel
           </button>

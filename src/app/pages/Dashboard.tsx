@@ -99,8 +99,8 @@ export default function Dashboard() {
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-neutral-100">Dashboard</h1>
-            <p className="text-neutral-80 mt-1 text-sm font-mono">
+            <h1 className="text-3xl font-bold text-earnest-100">Dashboard</h1>
+            <p className="text-earnest-80 mt-1 text-sm font-mono">
               {nucleusPath}
             </p>
           </div>
@@ -108,7 +108,7 @@ export default function Dashboard() {
             {results && parityReport && (
               <button
                 onClick={handlePublish}
-                className="flex items-center gap-2 px-4 py-2 border border-neutral-30 text-neutral-80 rounded-lg hover:bg-neutral-10 transition-colors text-sm font-medium"
+                className="flex items-center gap-2 px-4 py-2 border border-earnest-30 text-earnest-80 rounded-lg hover:bg-earnest-10 transition-colors text-sm font-medium"
               >
                 <Download size={16} />
                 Publish Report
@@ -144,9 +144,9 @@ export default function Dashboard() {
 
         {/* Scanning state */}
         {isScanning && (
-          <div className="bg-white border border-neutral-30 rounded-lg p-8 mb-6 flex flex-col items-center justify-center gap-3">
+          <div className="bg-white border border-earnest-30 rounded-lg p-8 mb-6 flex flex-col items-center justify-center gap-3">
             <Loader2 size={32} className="animate-spin text-primary-500" />
-            <p className="text-neutral-80 text-sm">
+            <p className="text-earnest-80 text-sm">
               {progressLabel || "Scanning..."}
             </p>
           </div>
@@ -242,12 +242,12 @@ export default function Dashboard() {
 
         {/* Empty state */}
         {!results && !isScanning && !error && (
-          <div className="bg-white border border-neutral-30 rounded-lg p-12 text-center">
-            <Package size={40} className="text-neutral-50 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-neutral-90 mb-2">
+          <div className="bg-white border border-earnest-30 rounded-lg p-12 text-center">
+            <Package size={40} className="text-earnest-50 mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-earnest-90 mb-2">
               No scan results yet
             </h2>
-            <p className="text-sm text-neutral-80 mb-6">
+            <p className="text-sm text-earnest-80 mb-6">
               Run an audit to scan Nucleus components and compare with Figma.
             </p>
             <button
@@ -306,12 +306,12 @@ function HealthScoreCardEmpty({
   reason: string;
 }) {
   return (
-    <div className="rounded-xl border border-neutral-30 bg-neutral-10 p-6">
-      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-60 mb-4">
+    <div className="rounded-xl border border-earnest-30 bg-earnest-10 p-6">
+      <p className="text-xs font-semibold uppercase tracking-wide text-earnest-60 mb-4">
         {label}
       </p>
       <p className="text-5xl font-bold text-gray-200 leading-none">—</p>
-      <p className="text-xs text-neutral-60 mt-4">{reason}</p>
+      <p className="text-xs text-earnest-60 mt-4">{reason}</p>
     </div>
   );
 }
@@ -357,7 +357,7 @@ function HealthNarrative({
   }
 
   return (
-    <p className="text-sm text-neutral-60 mt-2 mb-2">
+    <p className="text-sm text-earnest-60 mt-2 mb-2">
       {parts.join(" · ")} · Last scanned{" "}
       {new Date(parityReport.timestamp).toLocaleTimeString([], {
         hour: "2-digit",
@@ -405,7 +405,7 @@ function ScoreHistoryChart() {
           ? "text-green-600"
           : value < 0
             ? "text-red-500"
-            : "text-neutral-60"
+            : "text-earnest-60"
       }`}
     >
       {value > 0 ? `↑${value}` : value < 0 ? `↓${Math.abs(value)}` : "—"}
@@ -413,28 +413,28 @@ function ScoreHistoryChart() {
   );
 
   return (
-    <div className="mt-4 bg-white rounded-lg border border-neutral-30 p-6">
+    <div className="mt-4 bg-white rounded-lg border border-earnest-30 p-6">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h2 className="font-semibold text-neutral-100">Score history</h2>
-          <p className="text-xs text-neutral-60 mt-0.5">
+          <h2 className="font-semibold text-earnest-100">Score history</h2>
+          <p className="text-xs text-earnest-60 mt-0.5">
             Last {history.length} scans
           </p>
         </div>
         <div className="flex items-center gap-4 text-sm">
           <div className="text-right">
-            <p className="text-xs text-neutral-60">Parity</p>
+            <p className="text-xs text-earnest-60">Parity</p>
             <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-neutral-100">
+              <span className="font-semibold text-earnest-100">
                 {latest.parityScore}
               </span>
               <Delta value={parityDelta} />
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xs text-neutral-60">A11y</p>
+            <p className="text-xs text-earnest-60">A11y</p>
             <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-neutral-100">
+              <span className="font-semibold text-earnest-100">
                 {latest.a11yScore}
               </span>
               <Delta value={a11yDelta} />

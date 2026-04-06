@@ -105,11 +105,11 @@ export default function Accessibility() {
   if (!results) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-96 text-center">
-        <Eye size={40} className="text-neutral-50 mb-4" />
-        <h2 className="text-lg font-semibold text-neutral-90 mb-2">
+        <Eye size={40} className="text-earnest-50 mb-4" />
+        <h2 className="text-lg font-semibold text-earnest-90 mb-2">
           No scan results yet
         </h2>
-        <p className="text-sm text-neutral-80">
+        <p className="text-sm text-earnest-80">
           Run an audit from the Dashboard first.
         </p>
       </div>
@@ -132,14 +132,14 @@ export default function Accessibility() {
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-neutral-100">Accessibility</h1>
-            <p className="text-neutral-80 mt-1 text-sm">
+            <h1 className="text-3xl font-bold text-earnest-100">Accessibility</h1>
+            <p className="text-earnest-80 mt-1 text-sm">
               Audit Nucleus components against WCAG 2.2 AA requirements.
               Surfaces missing focus styles, ARIA attributes, semantic markup,
               and keyboard support so engineers can fix accessibility gaps
               before they ship.
             </p>
-            <p className="text-neutral-60 mt-0.5 text-xs">
+            <p className="text-earnest-60 mt-0.5 text-xs">
               4 checks per component · {components.length} components scanned
             </p>
           </div>
@@ -187,9 +187,9 @@ export default function Accessibility() {
         </div>
 
         {/* Component list */}
-        <div className="bg-white rounded-lg border border-neutral-30">
-          <div className="px-6 py-4 border-b border-neutral-30">
-            <h2 className="font-semibold text-neutral-100">Components</h2>
+        <div className="bg-white rounded-lg border border-earnest-30">
+          <div className="px-6 py-4 border-b border-earnest-30">
+            <h2 className="font-semibold text-earnest-100">Components</h2>
           </div>
           <div className="divide-y divide-gray-100">
             {[...components]
@@ -234,11 +234,11 @@ function A11yScoreBadge({
       <p className="text-sm font-medium mt-0.5">{grade}</p>
 
       {showTooltip && (
-        <div className="absolute top-full mt-2 right-0 z-10 w-72 bg-neutral-100 text-white text-xs rounded-lg p-4 shadow-lg text-left font-normal normal-case tracking-normal space-y-2.5">
+        <div className="absolute top-full mt-2 right-0 z-10 w-72 bg-earnest-100 text-white text-xs rounded-lg p-4 shadow-lg text-left font-normal normal-case tracking-normal space-y-2.5">
           <p className="font-semibold text-white mb-1">
             What does this score mean?
           </p>
-          <p className="text-neutral-50">
+          <p className="text-earnest-50">
             Average percentage of the 4 WCAG checks passing across all
             components. A score of 75 means 75% of checks pass on average.
           </p>
@@ -276,11 +276,11 @@ function A11yScoreBadge({
               },
             ].map((row) => (
               <div key={row.grade} className="flex gap-2">
-                <span className="text-neutral-60 w-14 shrink-0">{row.range}</span>
+                <span className="text-earnest-60 w-14 shrink-0">{row.range}</span>
                 <span className="text-gray-200 font-medium w-16 shrink-0">
                   {row.grade}
                 </span>
-                <span className="text-neutral-60">{row.meaning}</span>
+                <span className="text-earnest-60">{row.meaning}</span>
               </div>
             ))}
           </div>
@@ -307,29 +307,29 @@ function SummaryCard({
 }) {
   const [showTooltip, setShowTooltip] = useState(false);
   return (
-    <div className="bg-white rounded-lg border border-neutral-30 p-4 flex items-center gap-3">
+    <div className="bg-white rounded-lg border border-earnest-30 p-4 flex items-center gap-3">
       <div className={`${bg} p-2 rounded-lg shrink-0`}>{icon}</div>
       <div className="flex-1 min-w-0">
-        <p className="text-xl font-bold text-neutral-100">
+        <p className="text-xl font-bold text-earnest-100">
           {value}
           {total !== undefined && (
-            <span className="text-sm font-normal text-neutral-60 ml-1">
+            <span className="text-sm font-normal text-earnest-60 ml-1">
               / {total}
             </span>
           )}
         </p>
         <div className="flex items-center gap-1">
-          <p className="text-xs text-neutral-80">{label}</p>
+          <p className="text-xs text-earnest-80">{label}</p>
           <div className="relative">
             <button
               onMouseEnter={() => setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
-              className="text-neutral-50 hover:text-neutral-60 transition-colors"
+              className="text-earnest-50 hover:text-earnest-60 transition-colors"
             >
               <Info size={11} />
             </button>
             {showTooltip && (
-              <div className="absolute top-5 left-0 z-10 w-64 bg-neutral-100 text-white text-xs rounded-lg p-3 shadow-lg">
+              <div className="absolute top-5 left-0 z-10 w-64 bg-earnest-100 text-white text-xs rounded-lg p-3 shadow-lg">
                 {tooltip}
               </div>
             )}
@@ -350,7 +350,7 @@ function A11yComponentRow({ component }: { component: ComponentMetadata }) {
   const passingChecks = CHECKS.filter((c) => component[c.key]);
 
   return (
-    <div className="hover:bg-neutral-10 transition-colors">
+    <div className="hover:bg-earnest-10 transition-colors">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full px-6 py-4 flex items-center justify-between text-left"
@@ -359,7 +359,7 @@ function A11yComponentRow({ component }: { component: ComponentMetadata }) {
           <div
             className={`w-2 h-2 rounded-full shrink-0 ${getGradeDot(grade)}`}
           />
-          <span className="text-sm font-medium text-neutral-100">
+          <span className="text-sm font-medium text-earnest-100">
             {component.name}
           </span>
           {/* Check pills */}
@@ -385,7 +385,7 @@ function A11yComponentRow({ component }: { component: ComponentMetadata }) {
             target="_blank"
             rel="noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 text-xs text-neutral-60 hover:text-orange-500 transition-colors"
+            className="flex items-center gap-1 text-xs text-earnest-60 hover:text-orange-500 transition-colors"
           >
             <ExternalLink size={13} />
             Storybook
@@ -395,7 +395,7 @@ function A11yComponentRow({ component }: { component: ComponentMetadata }) {
             target="_blank"
             rel="noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 text-xs text-neutral-60 hover:text-neutral-90 transition-colors"
+            className="flex items-center gap-1 text-xs text-earnest-60 hover:text-earnest-90 transition-colors"
           >
             <ExternalLink size={13} />
             GitHub
@@ -406,9 +406,9 @@ function A11yComponentRow({ component }: { component: ComponentMetadata }) {
             {score} · {grade}
           </span>
           {expanded ? (
-            <ChevronUp size={14} className="text-neutral-60" />
+            <ChevronUp size={14} className="text-earnest-60" />
           ) : (
-            <ChevronDown size={14} className="text-neutral-60" />
+            <ChevronDown size={14} className="text-earnest-60" />
           )}
         </div>
       </button>
@@ -435,15 +435,15 @@ function A11yComponentRow({ component }: { component: ComponentMetadata }) {
                 {check.remediation.map((step, i) => (
                   <li
                     key={i}
-                    className="text-xs text-neutral-80 flex items-start gap-1.5"
+                    className="text-xs text-earnest-80 flex items-start gap-1.5"
                   >
-                    <span className="shrink-0 w-4 text-neutral-60">{i + 1}.</span>
+                    <span className="shrink-0 w-4 text-earnest-60">{i + 1}.</span>
                     <span>{step}</span>
                   </li>
                 ))}
               </ol>
               {check.referenceFile && (
-                <p className="text-xs text-neutral-60">
+                <p className="text-xs text-earnest-60">
                   Reference:{" "}
                   <a
                     href={githubLink(check.referenceFile)}

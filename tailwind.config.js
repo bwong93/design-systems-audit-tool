@@ -17,8 +17,8 @@ export default {
           800: "#006630",
           900: "#003323",
         },
-        // Nucleus warm neutrals (product2024)
-        neutral: {
+        // Nucleus warm neutrals — named "earnest" to avoid Tailwind's built-in "neutral" conflict
+        earnest: {
           0: "#FFFFFF",
           10: "#F4F4F4",
           20: "#F1EFE7",

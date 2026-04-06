@@ -9,9 +9,9 @@ import {
 
 export default function Layout() {
   return (
-    <div className="flex h-screen bg-neutral-20">
+    <div className="flex h-screen bg-earnest-20">
       {/* Sidebar */}
-      <aside className="w-56 bg-neutral-100 flex flex-col shrink-0">
+      <aside className="w-56 bg-earnest-100 flex flex-col shrink-0">
         {/* Logo */}
         <div className="px-5 pt-6 pb-5 border-b border-white/10">
           <div className="flex items-center gap-2.5">
