@@ -7,6 +7,7 @@ import type {
   CheckResult,
   ParityIssue,
   FigmaCandidate,
+  PropDetail,
 } from "../types/parity";
 import { getGrade, averageScores } from "./score-calculator";
 import { db } from "./db";
@@ -74,6 +75,10 @@ export async function runParityCheck(
 ): Promise<ParityReport> {
   const exceptions = await db.driftExceptions.toArray();
   const noMatchDecisions = await db.noMatchDecisions.toArray();
+  const figmaOnlyDecisions = await db.figmaOnlyDecisions.toArray();
+  const figmaOnlySet = new Set(
+    figmaOnlyDecisions.map((d) => d.figmaCodeName.toLowerCase()),
+  );
   const noMatchSet = new Map(
     noMatchDecisions.map((d) => [d.codeComponentName.toLowerCase(), d.reason]),
   );
@@ -113,13 +118,18 @@ export async function runParityCheck(
   }
 
   // Components in Figma that weren't matched to any code component
-  const figmaCodeNames = new Set(
-    figmaComponents.map((f) => f.codeName.toLowerCase()),
-  );
   const codeNames = new Set(codeComponents.map((c) => c.name.toLowerCase()));
-  const missingInCode = [...figmaCodeNames].filter(
-    (n) => !matchedFigmaNames.has(n),
-  );
+  const missingInCode = figmaComponents
+    .filter(
+      (f) =>
+        !matchedFigmaNames.has(f.codeName.toLowerCase()) &&
+        !figmaOnlySet.has(f.codeName.toLowerCase()),
+    )
+    .map((f) => ({
+      codeName: f.codeName,
+      figmaName: f.name,
+      figmaNodeId: f.id,
+    }));
   const missingInFigma = [...codeNames].filter(
     (_, i) =>
       components[i]?.status === "missing-in-figma" ||
@@ -229,6 +239,7 @@ function buildNoMatchResult(
           ]
         : [],
     approvedExceptionCount: componentExceptions.length,
+    propDetails: [],
   };
 }
 
@@ -254,6 +265,7 @@ function checkComponent(
       matchType,
       isSuggestedMatch: false,
       candidates,
+      propDetails: [],
       checks: {
         nameMatch: failCheck("No matching Figma component found.", [
           {
@@ -305,12 +317,21 @@ function checkComponent(
     componentExceptions,
     matchType,
   );
-  const propsCheck = checkProps(code, figma, componentExceptions);
+  const { result: propsCheck, propDetails } = checkProps(
+    code,
+    figma,
+    componentExceptions,
+  );
   const docsCheck = checkDocumentation(code, figma, componentExceptions);
 
   // Docs check surfaces issues but doesn't affect the parity score —
   // documentation completeness is a separate concern from component alignment.
-  const scores = [nameCheck.score, propsCheck.score];
+  // Props check is excluded from scoring when Figma has no properties defined —
+  // including a skipped check at 100 would inflate scores for unspecified components.
+  const scores =
+    propDetails.length > 0
+      ? [nameCheck.score, propsCheck.score]
+      : [nameCheck.score];
   const score = averageScores(scores);
   const grade = getGrade(score);
 
@@ -338,6 +359,7 @@ function checkComponent(
     matchType,
     isSuggestedMatch,
     candidates,
+    propDetails,
     checks: {
       nameMatch: nameCheck,
       propsMatch: propsCheck,
@@ -432,35 +454,68 @@ function checkName(
   };
 }
 
+/** Strips non-alphanumeric chars and lowercases for fuzzy prop name matching.
+ *  e.g. "fullWidth" → "fullwidth", "is-disabled" → "isdisabled"
+ */
+function normalizePropName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 function checkProps(
   code: ComponentMetadata,
   figma: FigmaComponent,
   exceptions: DriftException[],
-): CheckResult {
+): { result: CheckResult; propDetails: PropDetail[] } {
   if (figma.properties.length === 0) {
-    return skipCheck("No properties defined in Figma for this component.");
+    return {
+      result: skipCheck("No properties defined in Figma for this component."),
+      propDetails: [],
+    };
   }
 
-  const codeProps = new Set(code.props.map((p) => p.name.toLowerCase()));
+  // Build a normalized map: normalizedName → original code prop name
+  const codePropsNormalized = new Map(
+    code.props.map((p) => [normalizePropName(p.name), p.name]),
+  );
+
   const issues: ParityIssue[] = [];
+  const propDetails: PropDetail[] = [];
   let matched = 0;
 
   for (const figmaProp of figma.properties) {
-    const propName = figmaProp.name.toLowerCase();
+    const normalizedFigmaName = normalizePropName(figmaProp.name);
     const isExcepted = exceptions.some(
       (e) =>
         e.category === "figma-parity" &&
-        e.propertyName?.toLowerCase() === propName,
+        normalizePropName(e.propertyName ?? "") === normalizedFigmaName,
     );
 
     if (isExcepted) {
       matched++;
+      propDetails.push({
+        figmaName: figmaProp.name,
+        figmaValues: figmaProp.values,
+        matched: true,
+        approved: true,
+      });
       continue;
     }
 
-    if (codeProps.has(propName)) {
+    const codePropName = codePropsNormalized.get(normalizedFigmaName);
+    if (codePropName) {
       matched++;
+      propDetails.push({
+        figmaName: figmaProp.name,
+        figmaValues: figmaProp.values,
+        matched: true,
+        codePropName,
+      });
     } else {
+      propDetails.push({
+        figmaName: figmaProp.name,
+        figmaValues: figmaProp.values,
+        matched: false,
+      });
       issues.push({
         severity: "major",
         message: `Figma property "${figmaProp.name}" has no matching prop in code.`,
@@ -483,10 +538,13 @@ function checkProps(
   const score = Math.round((matched / figma.properties.length) * 100);
 
   return {
-    passed: issues.length === 0,
-    score,
-    details: `${matched} of ${figma.properties.length} Figma properties matched.`,
-    issues,
+    result: {
+      passed: issues.length === 0,
+      score,
+      details: `${matched} of ${figma.properties.length} Figma properties matched.`,
+      issues,
+    },
+    propDetails,
   };
 }
 

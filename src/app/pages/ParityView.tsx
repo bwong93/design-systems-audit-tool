@@ -8,19 +8,25 @@ import {
   XCircle,
   Undo2,
   ExternalLink,
-  Flag,
   Info,
+  ListTodo,
 } from "lucide-react";
-import { figmaLink, githubLink } from "../../utils/links";
+import { figmaLink, githubLink, storybookLink } from "../../utils/links";
 import { useAuditStore } from "../../stores/audit-store";
 import { useOnboardingStore } from "../../stores/onboarding-store";
 import { getGradeColor, getGradeDot } from "../../services/score-calculator";
 import { runParityCheck } from "../../services/parity-checker";
-import { db, type VisualFlag } from "../../services/db";
+import {
+  calculatePriorities,
+  type ActionItem,
+} from "../../services/priority-calculator";
+import { db, type FigmaOnlyDecision } from "../../services/db";
 import type {
   ComponentParityResult,
   ParityIssue,
   FigmaCandidate,
+  PropDetail,
+  FigmaMissingItem,
 } from "../../types/parity";
 import type { DriftReason } from "../../types/figma";
 
@@ -61,11 +67,18 @@ async function rerunParity() {
 export default function ParityView() {
   const { parityReport, results, figmaComponents } = useAuditStore();
   const { figmaFileKey } = useOnboardingStore();
-  const [visualFlagCount, setVisualFlagCount] = useState(0);
+  const [autoExpandComponent, setAutoExpandComponent] = useState<string | null>(
+    null,
+  );
 
-  useEffect(() => {
-    db.visualFlags.count().then(setVisualFlagCount);
-  }, []);
+  const handleActionNavigate = (componentName: string) => {
+    setAutoExpandComponent(componentName);
+    setTimeout(() => {
+      document
+        .getElementById(`component-row-${componentName}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+  };
 
   if (!results) {
     return (
@@ -188,35 +201,13 @@ export default function ParityView() {
               tooltip="Components where the fuzzy matcher found a possible Figma match but isn't confident enough to auto-confirm it. Expand the row to confirm or dismiss the suggestion."
             />
           )}
-          {visualFlagCount > 0 && (
-            <StatCard
-              icon={<Flag size={18} className="text-orange-600" />}
-              label="Visual flags"
-              value={visualFlagCount}
-              bg="bg-orange-50"
-            />
-          )}
         </div>
 
-        {/* Missing in code */}
-        {missingInCode.length > 0 && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-            <p className="text-sm font-semibold text-red-800 mb-2">
-              {missingInCode.length} component
-              {missingInCode.length > 1 ? "s" : ""} in Figma but not in code
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {missingInCode.map((name) => (
-                <span
-                  key={name}
-                  className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full"
-                >
-                  {name}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Action items */}
+        <ActionItemsPanel
+          report={parityReport}
+          onNavigate={handleActionNavigate}
+        />
 
         {/* Component list */}
         <div className="bg-white rounded-lg border border-gray-200">
@@ -231,14 +222,353 @@ export default function ParityView() {
                 figmaFileKey={figmaFileKey}
                 figmaAllComponents={figmaAllComponents}
                 onMatchChanged={rerunParity}
-                onFlagChanged={() =>
-                  db.visualFlags.count().then(setVisualFlagCount)
-                }
+                autoExpand={autoExpandComponent === component.componentName}
+                onAutoExpandDone={() => setAutoExpandComponent(null)}
               />
             ))}
           </div>
         </div>
+
+        {/* Figma components without a code match */}
+        {missingInCode.length > 0 && (
+          <MissingInCodeSection
+            items={missingInCode}
+            figmaFileKey={figmaFileKey}
+            codeComponentNames={
+              results?.components.map((c) => c.name).sort() ?? []
+            }
+            onResolved={rerunParity}
+          />
+        )}
       </div>
+    </div>
+  );
+}
+
+const OWNER_LABEL: Record<string, string> = {
+  engineer: "⚙ Eng",
+  designer: "🎨 Design",
+  both: "Both",
+};
+
+const TIER_CONFIG = {
+  "quick-win": {
+    label: "Quick wins",
+    dot: "bg-green-400",
+    text: "text-green-700",
+    bg: "bg-green-50",
+    border: "border-green-100",
+  },
+  critical: {
+    label: "Critical",
+    dot: "bg-red-400",
+    text: "text-red-700",
+    bg: "bg-red-50",
+    border: "border-red-100",
+  },
+  issue: {
+    label: "Has issues",
+    dot: "bg-amber-400",
+    text: "text-amber-700",
+    bg: "bg-amber-50",
+    border: "border-amber-100",
+  },
+};
+
+function ActionItemsPanel({
+  report,
+  onNavigate,
+}: {
+  report: import("../../types/parity").ParityReport;
+  onNavigate: (componentName: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const items = calculatePriorities(report);
+
+  if (items.length === 0) return null;
+
+  const quickWins = items.filter((i) => i.tier === "quick-win");
+  const critical = items.filter((i) => i.tier === "critical");
+  const issues = items.filter((i) => i.tier === "issue");
+
+  const summary = [
+    quickWins.length > 0
+      ? `${quickWins.length} quick win${quickWins.length > 1 ? "s" : ""}`
+      : null,
+    critical.length > 0 ? `${critical.length} critical` : null,
+    issues.length > 0
+      ? `${issues.length} issue${issues.length > 1 ? "s" : ""}`
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 mb-4">
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full px-6 py-4 flex items-center gap-3 text-left hover:bg-gray-50 transition-colors rounded-lg"
+      >
+        <ListTodo size={16} className="text-gray-400 shrink-0" />
+        <span className="text-sm font-semibold text-gray-900">
+          Action items
+        </span>
+        <span className="text-xs text-gray-400">{summary}</span>
+        <span className="ml-auto">
+          {open ? (
+            <ChevronUp size={14} className="text-gray-400" />
+          ) : (
+            <ChevronDown size={14} className="text-gray-400" />
+          )}
+        </span>
+      </button>
+
+      {open && (
+        <div className="border-t border-gray-100 px-6 py-4 space-y-5">
+          {(
+            [
+              ["quick-win", quickWins],
+              ["critical", critical],
+              ["issue", issues],
+            ] as [string, ActionItem[]][]
+          )
+            .filter(([, tier]) => tier.length > 0)
+            .map(([tierKey, tierItems]) => {
+              const cfg = TIER_CONFIG[tierKey as keyof typeof TIER_CONFIG];
+              return (
+                <div key={tierKey}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div
+                      className={`w-2 h-2 rounded-full shrink-0 ${cfg.dot}`}
+                    />
+                    <span className={`text-xs font-semibold ${cfg.text}`}>
+                      {cfg.label}
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {tierItems.map((item) => (
+                      <button
+                        key={item.componentName + item.label}
+                        onClick={() => onNavigate(item.componentName)}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left hover:brightness-95 transition-all ${cfg.bg} ${cfg.border}`}
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-gray-800 truncate">
+                            {item.label}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {item.sublabel}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-xs text-gray-400 bg-white border border-gray-200 px-1.5 py-0.5 rounded">
+                            {OWNER_LABEL[item.owner]}
+                          </span>
+                          {item.potentialGain > 0 && (
+                            <span className="text-xs text-gray-400">
+                              +{item.potentialGain} pts
+                            </span>
+                          )}
+                          <ExternalLink size={11} className="text-gray-300" />
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MissingInCodeSection({
+  items,
+  figmaFileKey,
+  codeComponentNames,
+  onResolved,
+}: {
+  items: FigmaMissingItem[];
+  figmaFileKey: string;
+  codeComponentNames: string[];
+  onResolved: () => void;
+}) {
+  const [decisions, setDecisions] = useState<Record<string, FigmaOnlyDecision>>(
+    {},
+  );
+  const [pending, setPending] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState<string | null>(null);
+
+  useEffect(() => {
+    db.figmaOnlyDecisions.toArray().then((rows) => {
+      const map: Record<string, FigmaOnlyDecision> = {};
+      rows.forEach((r) => (map[r.figmaCodeName.toLowerCase()] = r));
+      setDecisions(map);
+    });
+  }, []);
+
+  const handleLink = async (item: FigmaMissingItem) => {
+    const codeName = pending[item.codeName];
+    if (!codeName) return;
+    setSaving(item.codeName);
+    await db.componentMappings
+      .where("codeComponentName")
+      .equalsIgnoreCase(codeName)
+      .delete();
+    await db.componentMappings.add({
+      codeComponentName: codeName,
+      figmaComponentName: item.figmaName,
+      figmaNodeId: item.figmaNodeId,
+      createdAt: new Date().toISOString(),
+    });
+    setSaving(null);
+    onResolved();
+  };
+
+  const handleIntentional = async (item: FigmaMissingItem) => {
+    await db.figmaOnlyDecisions
+      .where("figmaCodeName")
+      .equalsIgnoreCase(item.codeName)
+      .delete();
+    const id = await db.figmaOnlyDecisions.add({
+      figmaCodeName: item.codeName,
+      createdAt: new Date().toISOString(),
+    });
+    const saved = await db.figmaOnlyDecisions.get(id);
+    if (saved) {
+      setDecisions((prev) => ({
+        ...prev,
+        [item.codeName.toLowerCase()]: saved,
+      }));
+    }
+    onResolved();
+  };
+
+  const handleRemoveDecision = async (item: FigmaMissingItem) => {
+    await db.figmaOnlyDecisions
+      .where("figmaCodeName")
+      .equalsIgnoreCase(item.codeName)
+      .delete();
+    setDecisions((prev) => {
+      const next = { ...prev };
+      delete next[item.codeName.toLowerCase()];
+      return next;
+    });
+    onResolved();
+  };
+
+  const unresolved = items.filter((i) => !decisions[i.codeName.toLowerCase()]);
+  const resolved = items.filter((i) => decisions[i.codeName.toLowerCase()]);
+
+  return (
+    <div className="mt-6 bg-white rounded-lg border border-gray-200">
+      <div className="px-6 py-4 border-b border-gray-100">
+        <h2 className="font-semibold text-gray-900">In Figma, not in code</h2>
+        <p className="text-xs text-gray-500 mt-0.5">
+          These Figma components have no matching code implementation. Link them
+          to an existing component or mark as intentional.
+        </p>
+      </div>
+
+      {unresolved.length === 0 && (
+        <div className="px-6 py-8 text-center text-sm text-green-600">
+          All Figma components are accounted for.
+        </div>
+      )}
+
+      {unresolved.length > 0 && (
+        <div className="divide-y divide-gray-100">
+          {unresolved.map((item) => (
+            <div
+              key={item.codeName}
+              className="px-6 py-3 flex items-center gap-4"
+            >
+              <div className="w-44 shrink-0">
+                <p className="text-sm font-medium text-gray-900">
+                  {item.figmaName}
+                </p>
+                {figmaFileKey && item.figmaNodeId && (
+                  <a
+                    href={figmaLink(figmaFileKey, item.figmaNodeId)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-violet-600 transition-colors mt-0.5"
+                  >
+                    <ExternalLink size={11} />
+                    Figma
+                  </a>
+                )}
+              </div>
+
+              <div className="flex-1 min-w-0 flex items-center gap-2">
+                <select
+                  value={pending[item.codeName] ?? ""}
+                  onChange={(e) =>
+                    setPending((p) => ({
+                      ...p,
+                      [item.codeName]: e.target.value,
+                    }))
+                  }
+                  className="flex-1 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary-500 bg-white"
+                >
+                  <option value="">— Link to code component —</option>
+                  {codeComponentNames.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => handleLink(item)}
+                  disabled={!pending[item.codeName] || saving === item.codeName}
+                  className="text-xs px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-40 font-medium transition-colors shrink-0"
+                >
+                  {saving === item.codeName ? "Saving…" : "Link"}
+                </button>
+              </div>
+
+              <button
+                onClick={() => handleIntentional(item)}
+                className="text-xs text-gray-400 hover:text-gray-700 transition-colors shrink-0 whitespace-nowrap"
+              >
+                Intentional
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {resolved.length > 0 && (
+        <div className="border-t border-gray-100">
+          <div className="px-6 py-2 bg-gray-50">
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+              Resolved ({resolved.length})
+            </p>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {resolved.map((item) => (
+              <div
+                key={item.codeName}
+                className="px-6 py-3 flex items-center gap-3"
+              >
+                <span className="text-xs text-gray-300 w-44 shrink-0 font-medium">
+                  {item.figmaName}
+                </span>
+                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                  Intentional — no code needed
+                </span>
+                <button
+                  onClick={() => handleRemoveDecision(item)}
+                  className="ml-auto text-xs text-gray-300 hover:text-gray-500 transition-colors"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -335,15 +665,24 @@ function ComponentParityRow({
   figmaFileKey,
   figmaAllComponents,
   onMatchChanged,
-  onFlagChanged,
+  autoExpand,
+  onAutoExpandDone,
 }: {
   component: ComponentParityResult;
   figmaFileKey: string;
   figmaAllComponents: { name: string; id: string }[];
   onMatchChanged: () => void;
-  onFlagChanged: () => void;
+  autoExpand?: boolean;
+  onAutoExpandDone?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (autoExpand) {
+      setExpanded(true);
+      onAutoExpandDone?.();
+    }
+  }, [autoExpand, onAutoExpandDone]);
   const [approvingIssue, setApprovingIssue] = useState<ParityIssue | null>(
     null,
   );
@@ -354,7 +693,10 @@ function ComponentParityRow({
   const isNeedsReview = component.status === "needs-review";
 
   return (
-    <div className="hover:bg-gray-50 transition-colors">
+    <div
+      id={`component-row-${component.componentName}`}
+      className="hover:bg-gray-50 transition-colors"
+    >
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full px-6 py-4 flex items-center justify-between text-left"
@@ -388,6 +730,17 @@ function ComponentParityRow({
           )}
         </div>
         <div className="flex items-center gap-3">
+          <a
+            href={storybookLink(component.componentName)}
+            target="_blank"
+            rel="noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
+            title="Open in Storybook"
+          >
+            <ExternalLink size={13} />
+            Storybook
+          </a>
           {component.figmaNodeId && figmaFileKey && !isNeedsReview && (
             <a
               href={figmaLink(figmaFileKey, component.figmaNodeId)}
@@ -424,6 +777,11 @@ function ComponentParityRow({
             onChanged={onMatchChanged}
           />
 
+          {/* Props comparison */}
+          {component.propDetails.length > 0 && (
+            <PropsComparison propDetails={component.propDetails} />
+          )}
+
           {/* Issues */}
           {hasIssues && (
             <div className="space-y-2 pt-1">
@@ -444,12 +802,6 @@ function ComponentParityRow({
               ))}
             </div>
           )}
-
-          {/* Visual flag */}
-          <VisualFlagControl
-            componentName={component.componentName}
-            onChanged={onFlagChanged}
-          />
         </div>
       )}
 
@@ -833,145 +1185,65 @@ function ManualSelect({
   );
 }
 
-function VisualFlagControl({
-  componentName,
-  onChanged,
-}: {
-  componentName: string;
-  onChanged: () => void;
-}) {
-  const [flag, setFlag] = useState<VisualFlag | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [note, setNote] = useState("");
-  const [flaggedBy, setFlaggedBy] = useState<"designer" | "engineer">(
-    "designer",
-  );
-  const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    db.visualFlags
-      .where("componentName")
-      .equalsIgnoreCase(componentName)
-      .first()
-      .then((f) => setFlag(f ?? null));
-  }, [componentName]);
-
-  const handleSave = async () => {
-    if (!note.trim()) return;
-    setSaving(true);
-    const saved = await db.visualFlags.add({
-      componentName,
-      note: note.trim(),
-      flaggedBy,
-      createdAt: new Date().toISOString(),
-    });
-    const newFlag = await db.visualFlags.get(saved);
-    setFlag(newFlag ?? null);
-    setShowForm(false);
-    setNote("");
-    setSaving(false);
-    onChanged();
-  };
-
-  const handleResolve = async () => {
-    await db.visualFlags
-      .where("componentName")
-      .equalsIgnoreCase(componentName)
-      .delete();
-    setFlag(null);
-    onChanged();
-  };
-
-  if (flag) {
-    return (
-      <div className="flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2.5 mt-1">
-        <Flag size={13} className="text-orange-500 mt-0.5 shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-xs font-medium text-orange-800">
-              Visual inconsistency
-            </span>
-            <span className="text-xs text-orange-500 capitalize">
-              · {flag.flaggedBy}
-            </span>
-          </div>
-          <p className="text-xs text-orange-700">{flag.note}</p>
-        </div>
-        <button
-          onClick={handleResolve}
-          className="text-xs text-orange-400 hover:text-orange-700 transition-colors shrink-0 whitespace-nowrap"
-        >
-          Mark resolved
-        </button>
-      </div>
-    );
-  }
-
-  if (showForm) {
-    return (
-      <div className="border border-orange-200 rounded-lg p-3 mt-1 space-y-2.5 bg-orange-50">
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="Describe the visual inconsistency..."
-          rows={2}
-          className="w-full px-2.5 py-2 text-xs border border-orange-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-400 bg-white resize-none"
-        />
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-gray-500">Flagged by</span>
-            <button
-              onClick={() => setFlaggedBy("designer")}
-              className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
-                flaggedBy === "designer"
-                  ? "bg-purple-50 text-purple-700 border-purple-200"
-                  : "text-gray-400 border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              🎨 Designer
-            </button>
-            <button
-              onClick={() => setFlaggedBy("engineer")}
-              className={`text-xs px-2 py-0.5 rounded-full border transition-colors ${
-                flaggedBy === "engineer"
-                  ? "bg-blue-50 text-blue-700 border-blue-200"
-                  : "text-gray-400 border-gray-200 hover:border-gray-300"
-              }`}
-            >
-              ⚙ Engineer
-            </button>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <button
-              onClick={() => {
-                setShowForm(false);
-                setNote("");
-              }}
-              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={!note.trim() || saving}
-              className="text-xs px-3 py-1.5 bg-orange-500 text-white rounded-lg hover:bg-orange-600 disabled:opacity-50 font-medium transition-colors"
-            >
-              {saving ? "Saving…" : "Save flag"}
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+function PropsComparison({ propDetails }: { propDetails: PropDetail[] }) {
+  const matched = propDetails.filter((p) => p.matched).length;
 
   return (
-    <button
-      onClick={() => setShowForm(true)}
-      className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-orange-500 transition-colors mt-1"
-    >
-      <Flag size={12} />
-      Flag visual inconsistency
-    </button>
+    <div className="border border-gray-100 rounded-lg overflow-hidden">
+      <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
+        <span className="text-xs font-medium text-gray-600">Props</span>
+        <span className="text-xs text-gray-400">
+          {matched} of {propDetails.length} matched
+        </span>
+      </div>
+      <div className="divide-y divide-gray-50">
+        {propDetails.map((prop) => (
+          <div
+            key={prop.figmaName}
+            className="flex items-start gap-3 px-3 py-2"
+          >
+            <span
+              className={`mt-0.5 shrink-0 text-xs font-bold ${
+                prop.approved
+                  ? "text-gray-300"
+                  : prop.matched
+                    ? "text-green-500"
+                    : "text-red-400"
+              }`}
+            >
+              {prop.approved ? "–" : prop.matched ? "✓" : "✗"}
+            </span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <code className="text-xs font-mono text-gray-700">
+                  {prop.figmaName}
+                </code>
+                {prop.codePropName &&
+                  prop.codePropName.toLowerCase() !==
+                    prop.figmaName.toLowerCase() && (
+                    <span className="text-xs text-gray-400">
+                      → <code className="font-mono">{prop.codePropName}</code>
+                    </span>
+                  )}
+                {prop.approved && (
+                  <span className="text-xs text-gray-400 italic">
+                    approved drift
+                  </span>
+                )}
+                {!prop.matched && !prop.approved && (
+                  <span className="text-xs text-red-400">missing in code</span>
+                )}
+              </div>
+              {prop.figmaValues.length > 0 && (
+                <p className="text-xs text-gray-400 mt-0.5 truncate">
+                  {prop.figmaValues.join(" | ")}
+                </p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

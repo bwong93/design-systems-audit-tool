@@ -27,6 +27,9 @@ export class FigmaClient {
     const data = await this.fetchFromApi();
     const components = this.parseComponents(data.meta.component_sets);
 
+    // Enrich each component with properties parsed from variant children
+    await this.enrichWithVariantProperties(components);
+
     await this.saveToCache(components);
     return components;
   }
@@ -75,6 +78,63 @@ export class FigmaClient {
     }
 
     return res.json();
+  }
+
+  /**
+   * Fetches full node data for all components in one batched request and
+   * parses variant child names (e.g. "variant=primary, size=large") to
+   * extract property names and their possible values.
+   */
+  private async enrichWithVariantProperties(
+    components: FigmaComponent[],
+  ): Promise<void> {
+    if (components.length === 0) return;
+
+    const excluded = new Set(auditConfig.figma.excludedProperties);
+    const ids = components.map((c) => c.id).join(",");
+
+    let nodesData: Record<
+      string,
+      { document?: { children?: { name: string }[] } }
+    >;
+    try {
+      const res = await fetch(
+        `${FIGMA_API}/files/${this.fileKey}/nodes?ids=${ids}`,
+        { headers: { "X-Figma-Token": this.token } },
+      );
+      if (!res.ok) return; // degrade gracefully — properties stay empty
+      nodesData = (await res.json()).nodes ?? {};
+    } catch {
+      return; // network error — degrade gracefully
+    }
+
+    for (const component of components) {
+      const children = nodesData[component.id]?.document?.children;
+      if (!children?.length) continue;
+
+      // Aggregate unique values per property name across all variant children
+      const propValues = new Map<string, Set<string>>();
+
+      for (const child of children) {
+        // Each child name looks like: "variant=primary, size=large, state=default"
+        for (const pair of child.name.split(",")) {
+          const eqIdx = pair.indexOf("=");
+          if (eqIdx === -1) continue;
+          const key = pair.slice(0, eqIdx).trim().toLowerCase();
+          const value = pair
+            .slice(eqIdx + 1)
+            .trim()
+            .toLowerCase();
+          if (excluded.has(key)) continue;
+          if (!propValues.has(key)) propValues.set(key, new Set());
+          propValues.get(key)!.add(value);
+        }
+      }
+
+      component.properties = Array.from(propValues.entries()).map(
+        ([name, values]) => ({ name, values: Array.from(values) }),
+      );
+    }
   }
 
   private parseComponents(raw: FigmaApiComponentSet[]): FigmaComponent[] {

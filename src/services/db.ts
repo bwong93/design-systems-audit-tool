@@ -19,6 +19,13 @@ export interface NoMatchDecision {
   createdAt: string;
 }
 
+/** Stores "intentional" decisions for Figma components with no code counterpart */
+export interface FigmaOnlyDecision {
+  id?: number;
+  figmaCodeName: string;
+  createdAt: string;
+}
+
 export interface VisualFlag {
   id?: number;
   componentName: string;
@@ -34,6 +41,7 @@ export class AuditDatabase extends Dexie {
   componentMappings!: Table<ComponentMapping>;
   noMatchDecisions!: Table<NoMatchDecision>;
   visualFlags!: Table<VisualFlag>;
+  figmaOnlyDecisions!: Table<FigmaOnlyDecision>;
 
   constructor() {
     super("ds-audit-tool");
@@ -68,6 +76,17 @@ export class AuditDatabase extends Dexie {
       componentMappings: "++id, codeComponentName, figmaComponentName",
       noMatchDecisions: "++id, codeComponentName, reason",
       visualFlags: "++id, componentName, createdAt",
+    });
+
+    // Version 5 adds intentional decisions for Figma-only components
+    this.version(5).stores({
+      figmaCache: "++id, fileKey, fetchedAt",
+      driftExceptions: "++id, componentName, category, propertyName, createdAt",
+      scanResults: "++id, timestamp",
+      componentMappings: "++id, codeComponentName, figmaComponentName",
+      noMatchDecisions: "++id, codeComponentName, reason",
+      visualFlags: "++id, componentName, createdAt",
+      figmaOnlyDecisions: "++id, figmaCodeName",
     });
   }
 }

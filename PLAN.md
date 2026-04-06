@@ -8,6 +8,72 @@ We're building a **Design Systems audit tool** to solve a critical problem: keep
 
 **Secondary Goals:** Audit accessibility compliance (WCAG 2.2 AA), design token usage, documentation coverage, and architectural patterns.
 
+---
+
+## Action Items — Ranking System & Scoring Rationale
+
+The DS Parity page includes a collapsible "Action items" panel that ranks issues by effort, not severity. The goal is momentum — users who see quick wins first build the habit of using the tool regularly.
+
+### Tiers
+
+**Tier 1 — Quick wins** (low effort, immediate score impact)
+
+- All `needs-review` components grouped as one item ("8 matches need review")
+- Components with score ≥ 75 and exactly 1 minor issue
+
+**Tier 2 — Critical** (high effort, high individual score impact)
+
+- Components with `status === "critical"` (score < 60)
+- Components with any `severity === "critical"` issue
+- Sorted by score ascending (lowest = most room to improve)
+
+**Tier 3 — Issues** (medium effort)
+
+- Components with `status === "issues"` (score 60–89)
+- Sorted by issue count descending
+
+### Why tiers, not a weighted formula?
+
+A formula (e.g. `impact × 0.6 + effort × 0.4`) produces opaque rankings. Users see a number but can't intuit why one item ranks above another. A tier system is transparent and maps to real sprint workflow: quick wins this sprint, critical scheduled, issues become backlog.
+
+### Why quick wins first, not critical first?
+
+Severity-first lists overwhelm teams with hard problems and they stop engaging. Quick wins first is a behavioural design choice — showing users they can make measurable progress in minutes builds the habit of using the tool. Once quick wins are cleared, the critical tier is shorter and easier to commit to.
+
+### Potential gain formula
+
+```
+potential gain = (100 - component.score) / totalComponents
+```
+
+If this component reached a perfect score of 100, it would add exactly this many points to the overall average score. Honest, scales correctly (more components = each fix contributes less), and legible as "+1.5 pts". Shown as a ceiling — actual gain may be less if some issues are approved as drift.
+
+### Tier assignment thresholds
+
+| Condition                            | Tier                   |
+| ------------------------------------ | ---------------------- |
+| `status === "needs-review"`          | Quick win (grouped)    |
+| `score ≥ 75` + 1 `minor` issue       | Quick win (individual) |
+| `status === "critical"` (score < 60) | Critical               |
+| Any `severity === "critical"` issue  | Critical               |
+| `status === "issues"` (score 60–89)  | Issue                  |
+
+**Why ≥ 75 for quick wins?** At 75 the component is already in "Good" territory — the remaining issue is genuinely minor. At 62, a single minor fix won't resolve the underlying alignment gap.
+
+**Why group needs-review items?** Each requires the same action (confirm or dismiss). One grouped item frames it as one task rather than inflating the list.
+
+### Sorting within tiers
+
+- Quick wins: `potentialGain` descending
+- Critical: `score` ascending (most broken first)
+- Issues: `issueCount` descending (broadest problem first)
+
+### Implementation
+
+- `src/services/priority-calculator.ts` — pure `calculatePriorities(report)` function
+- `src/app/pages/ParityView.tsx` — `ActionItemsPanel` component, collapsible, between stat cards and component list
+- Each component row has `id="component-row-{name}"` for scroll targeting; clicking an action item scrolls to and auto-expands that row
+
 **Target:** Nucleus design system (React + styled-components + Storybook)
 
 **Outcome:** A dashboard showing health scores, detailed component comparisons, visual diffs, and remediation guidance—helping Design and Engineering stay aligned.

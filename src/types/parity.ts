@@ -34,6 +34,17 @@ export type MatchType =
   | "fuzzy-suggest"
   | "none";
 
+/** A single row in the props comparison table */
+export interface PropDetail {
+  figmaName: string;
+  figmaValues: string[];
+  matched: boolean;
+  /** The matching code prop name (may differ in casing) */
+  codePropName?: string;
+  /** True if this mismatch has been approved as drift */
+  approved?: boolean;
+}
+
 /** A near-miss Figma component candidate shown in the "Review needed" section */
 export interface FigmaCandidate {
   figmaName: string;
@@ -67,6 +78,15 @@ export interface ComponentParityResult {
   };
   issues: ParityIssue[];
   approvedExceptionCount: number;
+  /** Per-property comparison breakdown — populated when Figma properties are available */
+  propDetails: PropDetail[];
+}
+
+/** A Figma component that has no matching code component */
+export interface FigmaMissingItem {
+  codeName: string;
+  figmaName: string;
+  figmaNodeId: string;
 }
 
 export interface ParityReport {
@@ -79,7 +99,7 @@ export interface ParityReport {
   totalCodeComponents: number;
   alignedCount: number;
   issuesCount: number;
-  missingInCode: string[];
+  missingInCode: FigmaMissingItem[];
   missingInFigma: string[];
   components: ComponentParityResult[];
 }

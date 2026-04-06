@@ -18,9 +18,8 @@ export interface FigmaVariant {
 
 export interface FigmaProperty {
   name: string;
-  type: "BOOLEAN" | "TEXT" | "INSTANCE_SWAP" | "VARIANT";
-  defaultValue?: string | boolean;
-  variantOptions?: string[];
+  /** All unique values across all variants e.g. ["primary", "secondary", "tertiary"] */
+  values: string[];
 }
 
 export interface FigmaComponent {
