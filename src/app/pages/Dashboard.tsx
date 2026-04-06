@@ -80,27 +80,14 @@ export default function Dashboard() {
       return passed < A11Y_KEYS.length;
     }).length ?? 0;
 
-  const tokenScore =
-    results && results.components.length > 0
-      ? Math.round(
-          (results.components.filter((c) => c.hardcodedColors.length === 0)
-            .length /
-            results.components.length) *
-            100,
-        )
-      : null;
-
-  const tokenFailCount =
-    results?.components.filter((c) => c.hardcodedColors.length > 0).length ?? 0;
-
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-earnest-100">Dashboard</h1>
-            <p className="text-earnest-80 mt-1 text-sm font-mono">
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+            <p className="text-gray-500 mt-1 text-sm font-mono">
               {nucleusPath}
             </p>
           </div>
@@ -108,7 +95,7 @@ export default function Dashboard() {
             {results && parityReport && (
               <button
                 onClick={handlePublish}
-                className="flex items-center gap-2 px-4 py-2 border border-earnest-30 text-earnest-80 rounded-lg hover:bg-earnest-10 transition-colors text-sm font-medium"
+                className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
               >
                 <Download size={16} />
                 Publish Report
@@ -144,9 +131,9 @@ export default function Dashboard() {
 
         {/* Scanning state */}
         {isScanning && (
-          <div className="bg-white border border-earnest-30 rounded-lg p-8 mb-6 flex flex-col items-center justify-center gap-3">
+          <div className="bg-white border border-gray-200 rounded-lg p-8 mb-6 flex flex-col items-center justify-center gap-3">
             <Loader2 size={32} className="animate-spin text-primary-500" />
-            <p className="text-earnest-80 text-sm">
+            <p className="text-gray-600 text-sm">
               {progressLabel || "Scanning..."}
             </p>
           </div>
@@ -174,7 +161,7 @@ export default function Dashboard() {
             )}
 
             {/* Health scores */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
               {parityReport ? (
                 <>
                   <HealthScoreCard
@@ -212,16 +199,6 @@ export default function Dashboard() {
               ) : (
                 <HealthScoreCardEmpty label="A11y Score" reason="Run a scan" />
               )}
-              {tokenScore !== null ? (
-                <HealthScoreCard
-                  label="Token Score"
-                  score={tokenScore}
-                  detail={`${results.components.length - tokenFailCount} of ${results.components.length} using tokens`}
-                  to="/tokens"
-                />
-              ) : (
-                <HealthScoreCardEmpty label="Token Score" reason="Run a scan" />
-              )}
             </div>
 
             {/* Health narrative */}
@@ -229,7 +206,6 @@ export default function Dashboard() {
               <HealthNarrative
                 parityReport={parityReport}
                 a11yFailCount={a11yFailCount}
-                tokenFailCount={tokenFailCount}
                 totalComponents={results.totalComponents}
                 figmaCount={figmaComponents.length}
               />
@@ -242,12 +218,12 @@ export default function Dashboard() {
 
         {/* Empty state */}
         {!results && !isScanning && !error && (
-          <div className="bg-white border border-earnest-30 rounded-lg p-12 text-center">
-            <Package size={40} className="text-earnest-50 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-earnest-90 mb-2">
+          <div className="bg-white border border-gray-200 rounded-lg p-12 text-center">
+            <Package size={40} className="text-gray-300 mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-gray-700 mb-2">
               No scan results yet
             </h2>
-            <p className="text-sm text-earnest-80 mb-6">
+            <p className="text-sm text-gray-500 mb-6">
               Run an audit to scan Nucleus components and compare with Figma.
             </p>
             <button
@@ -306,12 +282,12 @@ function HealthScoreCardEmpty({
   reason: string;
 }) {
   return (
-    <div className="rounded-xl border border-earnest-30 bg-earnest-10 p-6">
-      <p className="text-xs font-semibold uppercase tracking-wide text-earnest-60 mb-4">
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-6">
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-4">
         {label}
       </p>
       <p className="text-5xl font-bold text-gray-200 leading-none">—</p>
-      <p className="text-xs text-earnest-60 mt-4">{reason}</p>
+      <p className="text-xs text-gray-400 mt-4">{reason}</p>
     </div>
   );
 }
@@ -321,13 +297,11 @@ function HealthScoreCardEmpty({
 function HealthNarrative({
   parityReport,
   a11yFailCount,
-  tokenFailCount,
   totalComponents,
   figmaCount,
 }: {
   parityReport: ParityReport;
   a11yFailCount: number;
-  tokenFailCount: number;
   totalComponents: number;
   figmaCount: number;
 }) {
@@ -350,14 +324,9 @@ function HealthNarrative({
   if (a11yFailCount > 0) {
     parts.push(`${a11yFailCount} with a11y gap${a11yFailCount > 1 ? "s" : ""}`);
   }
-  if (tokenFailCount > 0) {
-    parts.push(
-      `${tokenFailCount} with hardcoded color${tokenFailCount > 1 ? "s" : ""}`,
-    );
-  }
 
   return (
-    <p className="text-sm text-earnest-60 mt-2 mb-2">
+    <p className="text-sm text-gray-400 mt-2 mb-2">
       {parts.join(" · ")} · Last scanned{" "}
       {new Date(parityReport.timestamp).toLocaleTimeString([], {
         hour: "2-digit",
@@ -405,7 +374,7 @@ function ScoreHistoryChart() {
           ? "text-green-600"
           : value < 0
             ? "text-red-500"
-            : "text-earnest-60"
+            : "text-gray-400"
       }`}
     >
       {value > 0 ? `↑${value}` : value < 0 ? `↓${Math.abs(value)}` : "—"}
@@ -413,28 +382,28 @@ function ScoreHistoryChart() {
   );
 
   return (
-    <div className="mt-4 bg-white rounded-lg border border-earnest-30 p-6">
+    <div className="mt-4 bg-white rounded-lg border border-gray-200 p-6">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h2 className="font-semibold text-earnest-100">Score history</h2>
-          <p className="text-xs text-earnest-60 mt-0.5">
+          <h2 className="font-semibold text-gray-900">Score history</h2>
+          <p className="text-xs text-gray-400 mt-0.5">
             Last {history.length} scans
           </p>
         </div>
         <div className="flex items-center gap-4 text-sm">
           <div className="text-right">
-            <p className="text-xs text-earnest-60">Parity</p>
+            <p className="text-xs text-gray-400">Parity</p>
             <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-earnest-100">
+              <span className="font-semibold text-gray-900">
                 {latest.parityScore}
               </span>
               <Delta value={parityDelta} />
             </div>
           </div>
           <div className="text-right">
-            <p className="text-xs text-earnest-60">A11y</p>
+            <p className="text-xs text-gray-400">A11y</p>
             <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-earnest-100">
+              <span className="font-semibold text-gray-900">
                 {latest.a11yScore}
               </span>
               <Delta value={a11yDelta} />

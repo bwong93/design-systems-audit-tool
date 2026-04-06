@@ -29,6 +29,22 @@ function App() {
           <Route path="parity" element={<ParityView />} />
           <Route path="accessibility" element={<Accessibility />} />
           <Route path="tokens" element={<Tokens />} />
+          <Route
+            path="documentation"
+            element={
+              <div className="p-8 text-gray-500">
+                Documentation — coming in Phase 4
+              </div>
+            }
+          />
+          <Route
+            path="architecture"
+            element={
+              <div className="p-8 text-gray-500">
+                Architecture — coming in Phase 4
+              </div>
+            }
+          />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>

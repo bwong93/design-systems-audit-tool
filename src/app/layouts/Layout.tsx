@@ -4,69 +4,61 @@ import {
   GitCompare,
   Eye,
   Palette,
+  BookOpen,
+  Box,
   Settings,
 } from "lucide-react";
 
 export default function Layout() {
   return (
-    <div className="flex h-screen bg-earnest-20">
+    <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside className="w-56 bg-earnest-100 flex flex-col shrink-0">
-        {/* Logo */}
-        <div className="px-5 pt-6 pb-5 border-b border-white/10">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-primary-400 flex items-center justify-center shrink-0">
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M2 7h10M7 2v10M4 4l6 6M10 4l-6 6"
-                  stroke="#121212"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </div>
-            <div>
-              <p className="text-white text-sm font-semibold leading-tight">
-                DS Audit
-              </p>
-              <p className="text-white/40 text-xs leading-tight">Nucleus</p>
-            </div>
+      <aside className="w-64 bg-white border-r border-gray-200">
+        <div className="flex flex-col h-full">
+          {/* Logo/Title */}
+          <div className="p-6 border-b border-gray-200">
+            <h1 className="text-xl font-bold text-gray-900">DS Audit Tool</h1>
+            <p className="text-sm text-gray-500 mt-1">Design Systems</p>
           </div>
-        </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-0.5">
-          <NavLink
-            to="/"
-            icon={<LayoutDashboard size={16} />}
-            label="Dashboard"
-          />
-          <NavLink
-            to="/parity"
-            icon={<GitCompare size={16} />}
-            label="DS Parity"
-          />
-          <NavLink
-            to="/accessibility"
-            icon={<Eye size={16} />}
-            label="Accessibility"
-          />
-          <NavLink to="/tokens" icon={<Palette size={16} />} label="Tokens" />
-        </nav>
+          {/* Navigation */}
+          <nav className="flex-1 p-4 space-y-1">
+            <NavLink
+              to="/"
+              icon={<LayoutDashboard size={20} />}
+              label="Dashboard"
+            />
+            <NavLink
+              to="/parity"
+              icon={<GitCompare size={20} />}
+              label="DS Parity"
+            />
+            <NavLink
+              to="/accessibility"
+              icon={<Eye size={20} />}
+              label="Accessibility"
+            />
+            <NavLink to="/tokens" icon={<Palette size={20} />} label="Tokens" />
+            <NavLink
+              to="/documentation"
+              icon={<BookOpen size={20} />}
+              label="Documentation"
+            />
+            <NavLink
+              to="/architecture"
+              icon={<Box size={20} />}
+              label="Architecture"
+            />
+          </nav>
 
-        {/* Settings */}
-        <div className="px-3 pb-4 border-t border-white/10 pt-3">
-          <NavLink
-            to="/settings"
-            icon={<Settings size={16} />}
-            label="Settings"
-          />
+          {/* Settings */}
+          <div className="p-4 border-t border-gray-200">
+            <NavLink
+              to="/settings"
+              icon={<Settings size={20} />}
+              label="Settings"
+            />
+          </div>
         </div>
       </aside>
 
@@ -92,10 +84,10 @@ function NavLink({
       to={to}
       end={to === "/"}
       className={({ isActive }) =>
-        `flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors text-sm ${
+        `flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm ${
           isActive
-            ? "bg-primary-400/15 text-primary-400 font-medium"
-            : "text-white/50 hover:text-white/90 hover:bg-white/5"
+            ? "bg-primary-50 text-primary-700 font-medium"
+            : "text-gray-600 hover:bg-gray-100"
         }`
       }
     >
