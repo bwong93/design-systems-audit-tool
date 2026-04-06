@@ -163,6 +163,43 @@ const TOKEN_LEGEND: [string, string][] = [
   ],
 ];
 
+function scoreCard({
+  label,
+  score,
+  description,
+  legend,
+}: {
+  label: string;
+  score: number;
+  description: string;
+  legend: [string, string][];
+}): string {
+  const grade = gradeLabel(score);
+  const color = gradeColor(score);
+  const bg = gradeBg(score);
+  const border = gradeBorderColor(score);
+
+  return `
+    <div style="border:1px solid ${border};border-radius:10px;overflow:hidden">
+      <div style="background:${bg};padding:14px 16px;display:flex;align-items:center;gap:16px">
+        <div style="text-align:center;min-width:72px">
+          <div style="font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:${color};margin-bottom:2px;opacity:.8">${label}</div>
+          <div style="font-size:34px;font-weight:700;color:${color};line-height:1">${score}</div>
+          <div style="font-size:11px;font-weight:500;color:${color}">${grade}</div>
+        </div>
+        <div style="font-size:11px;color:#6b7280;line-height:1.5;border-left:1px solid ${border};padding-left:16px">
+          ${description}
+        </div>
+      </div>
+      <div style="background:white;border-top:1px solid ${border}">
+        <div style="padding:5px 12px;background:#f9fafb;font-size:9px;font-weight:600;color:#9ca3af;border-bottom:1px solid #f3f4f6;text-transform:uppercase;letter-spacing:.04em">Grade guide</div>
+        <table style="width:100%;border-collapse:collapse">
+          ${gradeLegend(legend)}
+        </table>
+      </div>
+    </div>`;
+}
+
 export function generateReport({
   parityReport,
   results,
@@ -179,7 +216,7 @@ export function generateReport({
   });
 
   const a11yScore = calcA11yScore(results);
-  const a11yGrade = gradeLabel(a11yScore);
+  const tokenScore = calcTokenScore(results);
 
   const componentRows = parityReport.components
     .filter((c) => c.status !== "aligned")
@@ -267,11 +304,6 @@ export function generateReport({
     h1 { font-size: 28px; font-weight: 700; }
     h2 { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
     .meta { color: #6b7280; font-size: 13px; margin-top: 4px; font-family: monospace; }
-    .scores { display: flex; gap: 16px; margin: 24px 0; }
-    .score-card { flex: 1; border-radius: 12px; padding: 16px 20px; text-align: center; border: 1px solid; }
-    .score-card .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; opacity: .7; margin-bottom: 6px; }
-    .score-card .value { font-size: 36px; font-weight: 700; }
-    .score-card .grade { font-size: 13px; font-weight: 500; margin-top: 2px; }
     .stats { display: flex; gap: 12px; margin-bottom: 32px; }
     .stat { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 18px; flex: 1; }
     .stat .n { font-size: 22px; font-weight: 700; }
@@ -290,23 +322,12 @@ export function generateReport({
     <h1>Nucleus Health Report</h1>
     <p class="meta">Generated ${date} · ${nucleusPath}</p>
 
-    <!-- Scores -->
-    <div class="scores">
-      <div class="score-card" style="color:${gradeColor(parityReport.overallScore)};background:${gradeBg(parityReport.overallScore)};border-color:${gradeColor(parityReport.overallScore)}33">
-        <div class="label">Parity Score</div>
-        <div class="value">${parityReport.overallScore}</div>
-        <div class="grade">${parityReport.overallGrade}</div>
-      </div>
-      <div class="score-card" style="color:${gradeColor(parityReport.coverageScore)};background:${gradeBg(parityReport.coverageScore)};border-color:${gradeColor(parityReport.coverageScore)}33">
-        <div class="label">Coverage</div>
-        <div class="value">${parityReport.coverageScore}</div>
-        <div class="grade">${gradeLabel(parityReport.coverageScore)}</div>
-      </div>
-      <div class="score-card" style="color:${gradeColor(a11yScore)};background:${gradeBg(a11yScore)};border-color:${gradeColor(a11yScore)}33">
-        <div class="label">A11y Score</div>
-        <div class="value">${a11yScore}</div>
-        <div class="grade">${a11yGrade}</div>
-      </div>
+    <!-- Scores 2x2 grid -->
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin:24px 0">
+      ${scoreCard({ label: "Parity Score", score: parityReport.overallScore, description: "How closely code reflects the Figma spec. Low scores mean designers and engineers are working from different sources of truth.", legend: PARITY_LEGEND })}
+      ${scoreCard({ label: "Coverage", score: parityReport.coverageScore, description: "% of code components that have a Figma spec. Low scores mean engineers are building without design guidance.", legend: COVERAGE_LEGEND })}
+      ${scoreCard({ label: "A11y Score", score: a11yScore, description: "% of WCAG 2.2 AA checks passing across all components. Low scores mean real barriers for keyboard and assistive technology users.", legend: A11Y_LEGEND })}
+      ${scoreCard({ label: "Token Score", score: tokenScore, description: "% of components using design tokens instead of hardcoded values. Low scores make rebranding and theming expensive.", legend: TOKEN_LEGEND })}
     </div>
 
     <!-- Summary stats -->
