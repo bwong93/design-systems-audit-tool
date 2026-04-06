@@ -13,16 +13,18 @@ export function githubLink(filePath: string): string {
 
 /**
  * Storybook story link for a component.
- * Uses the actual story title (e.g. "Patterns/Accordion") when available,
- * falling back to the component name under Components/.
+ * Uses the actual story title and first story name from the stories file.
+ * Autodocs is disabled in Nucleus so we link to the first named story.
  */
 export function storybookLink(
   componentName: string,
   storyTitle?: string,
+  firstStoryName?: string,
 ): string {
   const base = storyTitle ?? `Components/${componentName}`;
   const slug = base.toLowerCase().replace(/\s+/g, "-").replace(/\//g, "-");
-  return `${storybookUrl}/?path=/docs/${slug}--docs`;
+  const story = (firstStoryName ?? "default").toLowerCase();
+  return `${storybookUrl}/?path=/story/${slug}--${story}`;
 }
 
 /**

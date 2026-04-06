@@ -34,6 +34,7 @@ export class ComponentAnalyzer {
       hasKeyboardSupport: this.detectKeyboardSupport(source),
       hardcodedColors: this.detectHardcodedColors(source),
       storyTitle: this.extractStoryTitle(files.storiesFile),
+      firstStoryName: this.extractFirstStoryName(files.storiesFile),
     };
   }
 
@@ -160,6 +161,14 @@ export class ComponentAnalyzer {
     if (!storiesFile || !fs.existsSync(storiesFile)) return undefined;
     const source = fs.readFileSync(storiesFile, "utf-8");
     const match = source.match(/title:\s*['"]([^'"]+)['"]/);
+    return match?.[1];
+  }
+
+  /** Extracts the first named story export e.g. "Primary" from a stories file */
+  private extractFirstStoryName(storiesFile?: string): string | undefined {
+    if (!storiesFile || !fs.existsSync(storiesFile)) return undefined;
+    const source = fs.readFileSync(storiesFile, "utf-8");
+    const match = source.match(/^export const (\w+)/m);
     return match?.[1];
   }
 

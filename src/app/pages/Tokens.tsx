@@ -230,7 +230,11 @@ function TokenComponentRow({ component }: { component: ComponentMetadata }) {
         </div>
         <div className="flex items-center gap-3">
           <a
-            href={storybookLink(component.name)}
+            href={storybookLink(
+              component.name,
+              component.storyTitle,
+              component.firstStoryName,
+            )}
             target="_blank"
             rel="noreferrer"
             onClick={(e) => e.stopPropagation()}

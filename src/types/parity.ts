@@ -82,6 +82,8 @@ export interface ComponentParityResult {
   propDetails: PropDetail[];
   /** Storybook story title e.g. "Patterns/Accordion" — used to build the correct story URL */
   storyTitle?: string;
+  /** First named story export e.g. "Primary" — used to build the correct story URL */
+  firstStoryName?: string;
 }
 
 /** A Figma component that has no matching code component */

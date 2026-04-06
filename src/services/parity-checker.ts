@@ -240,6 +240,7 @@ function buildNoMatchResult(
         : [],
     approvedExceptionCount: componentExceptions.length,
     storyTitle: code.storyTitle,
+    firstStoryName: code.firstStoryName,
     propDetails: [],
   };
 }
@@ -307,6 +308,7 @@ function checkComponent(
       issues: [],
       approvedExceptionCount: componentExceptions.length,
       storyTitle: code.storyTitle,
+      firstStoryName: code.firstStoryName,
     };
   }
 
@@ -370,6 +372,7 @@ function checkComponent(
     issues: allIssues,
     approvedExceptionCount: componentExceptions.length,
     storyTitle: code.storyTitle,
+    firstStoryName: code.firstStoryName,
   };
 }
 

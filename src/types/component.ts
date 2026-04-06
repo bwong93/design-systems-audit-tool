@@ -45,6 +45,7 @@ export interface ComponentMetadata {
 
   // Storybook
   storyTitle?: string;
+  firstStoryName?: string;
 
   // Coverage metrics
   testCoverage?: number;

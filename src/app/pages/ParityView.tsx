@@ -818,7 +818,11 @@ function ComponentParityRow({
         </div>
         <div className="flex items-center gap-3">
           <a
-            href={storybookLink(component.componentName)}
+            href={storybookLink(
+              component.componentName,
+              component.storyTitle,
+              component.firstStoryName,
+            )}
             target="_blank"
             rel="noreferrer"
             onClick={(e) => e.stopPropagation()}
