@@ -80,6 +80,19 @@ export default function Dashboard() {
       return passed < A11Y_KEYS.length;
     }).length ?? 0;
 
+  const tokenScore =
+    results && results.components.length > 0
+      ? Math.round(
+          (results.components.filter((c) => c.hardcodedColors.length === 0)
+            .length /
+            results.components.length) *
+            100,
+        )
+      : null;
+
+  const tokenFailCount =
+    results?.components.filter((c) => c.hardcodedColors.length > 0).length ?? 0;
+
   return (
     <div className="p-8">
       <div className="max-w-7xl mx-auto">
@@ -161,7 +174,7 @@ export default function Dashboard() {
             )}
 
             {/* Health scores */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-3">
               {parityReport ? (
                 <>
                   <HealthScoreCard
@@ -199,6 +212,16 @@ export default function Dashboard() {
               ) : (
                 <HealthScoreCardEmpty label="A11y Score" reason="Run a scan" />
               )}
+              {tokenScore !== null ? (
+                <HealthScoreCard
+                  label="Token Score"
+                  score={tokenScore}
+                  detail={`${results.components.length - tokenFailCount} of ${results.components.length} using tokens`}
+                  to="/tokens"
+                />
+              ) : (
+                <HealthScoreCardEmpty label="Token Score" reason="Run a scan" />
+              )}
             </div>
 
             {/* Health narrative */}
@@ -206,6 +229,7 @@ export default function Dashboard() {
               <HealthNarrative
                 parityReport={parityReport}
                 a11yFailCount={a11yFailCount}
+                tokenFailCount={tokenFailCount}
                 totalComponents={results.totalComponents}
                 figmaCount={figmaComponents.length}
               />
@@ -297,11 +321,13 @@ function HealthScoreCardEmpty({
 function HealthNarrative({
   parityReport,
   a11yFailCount,
+  tokenFailCount,
   totalComponents,
   figmaCount,
 }: {
   parityReport: ParityReport;
   a11yFailCount: number;
+  tokenFailCount: number;
   totalComponents: number;
   figmaCount: number;
 }) {
@@ -323,6 +349,11 @@ function HealthNarrative({
   }
   if (a11yFailCount > 0) {
     parts.push(`${a11yFailCount} with a11y gap${a11yFailCount > 1 ? "s" : ""}`);
+  }
+  if (tokenFailCount > 0) {
+    parts.push(
+      `${tokenFailCount} with hardcoded color${tokenFailCount > 1 ? "s" : ""}`,
+    );
   }
 
   return (
