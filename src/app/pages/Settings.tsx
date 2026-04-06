@@ -8,11 +8,11 @@ export default function Settings() {
   return (
     <div className="p-8">
       <div className="max-w-4xl mx-auto space-y-8">
-        <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
+        <h1 className="text-3xl font-bold text-neutral-100">Settings</h1>
 
         {/* Config */}
-        <section className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="font-semibold text-gray-900 mb-4">Configuration</h2>
+        <section className="bg-white rounded-lg border border-neutral-30 p-6">
+          <h2 className="font-semibold text-neutral-100 mb-4">Configuration</h2>
           <div className="space-y-3 text-sm">
             <ConfigRow label="Figma File Key" value={figmaFileKey || "—"} />
             <ConfigRow
@@ -60,9 +60,9 @@ function ConfigRow({
   mono?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between py-1 border-b border-gray-100 last:border-0">
-      <span className="text-gray-500">{label}</span>
-      <span className={`text-gray-900 ${mono ? "font-mono text-xs" : ""}`}>
+    <div className="flex items-center justify-between py-1 border-b border-neutral-30 last:border-0">
+      <span className="text-neutral-80">{label}</span>
+      <span className={`text-neutral-100 ${mono ? "font-mono text-xs" : ""}`}>
         {value}
       </span>
     </div>

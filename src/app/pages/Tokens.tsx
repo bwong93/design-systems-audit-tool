@@ -23,11 +23,11 @@ export default function Tokens() {
   if (!results) {
     return (
       <div className="p-8 flex flex-col items-center justify-center min-h-96 text-center">
-        <Palette size={40} className="text-gray-300 mb-4" />
-        <h2 className="text-lg font-semibold text-gray-700 mb-2">
+        <Palette size={40} className="text-neutral-50 mb-4" />
+        <h2 className="text-lg font-semibold text-neutral-90 mb-2">
           No scan results yet
         </h2>
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-neutral-80">
           Run an audit from the Dashboard first.
         </p>
       </div>
@@ -50,13 +50,13 @@ export default function Tokens() {
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Token Usage</h1>
-            <p className="text-gray-500 mt-1 text-sm">
+            <h1 className="text-3xl font-bold text-neutral-100">Token Usage</h1>
+            <p className="text-neutral-80 mt-1 text-sm">
               Ensure components use design tokens for colors — not hardcoded
               values. Hardcoded colors break theming and make rebrands
               expensive.
             </p>
-            <p className="text-gray-400 mt-0.5 text-xs">
+            <p className="text-neutral-60 mt-0.5 text-xs">
               {components.length} components scanned · {totalViolations}{" "}
               hardcoded color
               {totalViolations !== 1 ? "s" : ""} found
@@ -67,32 +67,32 @@ export default function Tokens() {
 
         {/* Summary cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <div className="bg-white rounded-lg border border-gray-200 p-4 flex items-center gap-3">
+          <div className="bg-white rounded-lg border border-neutral-30 p-4 flex items-center gap-3">
             <div className="bg-green-50 p-2 rounded-lg shrink-0">
               <CheckCircle size={18} className="text-green-600" />
             </div>
             <div>
-              <p className="text-xl font-bold text-gray-900">
+              <p className="text-xl font-bold text-neutral-100">
                 {passing.length}
-                <span className="text-sm font-normal text-gray-400 ml-1">
+                <span className="text-sm font-normal text-neutral-60 ml-1">
                   / {components.length}
                 </span>
               </p>
-              <p className="text-xs text-gray-500">Using tokens correctly</p>
+              <p className="text-xs text-neutral-80">Using tokens correctly</p>
             </div>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4 flex items-center gap-3">
+          <div className="bg-white rounded-lg border border-neutral-30 p-4 flex items-center gap-3">
             <div className="bg-red-50 p-2 rounded-lg shrink-0">
               <XCircle size={18} className="text-red-600" />
             </div>
             <div>
-              <p className="text-xl font-bold text-gray-900">
+              <p className="text-xl font-bold text-neutral-100">
                 {failing.length}
-                <span className="text-sm font-normal text-gray-400 ml-1">
+                <span className="text-sm font-normal text-neutral-60 ml-1">
                   components
                 </span>
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-neutral-80">
                 {totalViolations} hardcoded color
                 {totalViolations !== 1 ? "s" : ""} need replacing
               </p>
@@ -101,9 +101,9 @@ export default function Tokens() {
         </div>
 
         {/* Component list */}
-        <div className="bg-white rounded-lg border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">Components</h2>
+        <div className="bg-white rounded-lg border border-neutral-30">
+          <div className="px-6 py-4 border-b border-neutral-30">
+            <h2 className="font-semibold text-neutral-100">Components</h2>
           </div>
           <div className="divide-y divide-gray-100">
             {[...components]
@@ -182,19 +182,19 @@ function TokenScoreBadge({
       <p className="text-sm font-medium mt-0.5">{grade}</p>
 
       {showTooltip && (
-        <div className="absolute top-full mt-2 right-0 z-10 w-72 bg-gray-900 text-white text-xs rounded-lg p-4 shadow-lg text-left font-normal normal-case tracking-normal space-y-2.5">
-          <p className="text-gray-300">
+        <div className="absolute top-full mt-2 right-0 z-10 w-72 bg-neutral-100 text-white text-xs rounded-lg p-4 shadow-lg text-left font-normal normal-case tracking-normal space-y-2.5">
+          <p className="text-neutral-50">
             % of components with no hardcoded color values. A score of 100 means
             every component uses design tokens exclusively.
           </p>
           <div className="space-y-1.5 border-t border-gray-700 pt-2.5">
             {TOKEN_LEGEND.map((row) => (
               <div key={row.grade} className="flex gap-2">
-                <span className="text-gray-400 w-14 shrink-0">{row.range}</span>
+                <span className="text-neutral-60 w-14 shrink-0">{row.range}</span>
                 <span className="text-gray-200 font-medium w-16 shrink-0">
                   {row.grade}
                 </span>
-                <span className="text-gray-400">{row.meaning}</span>
+                <span className="text-neutral-60">{row.meaning}</span>
               </div>
             ))}
           </div>
@@ -212,18 +212,18 @@ function TokenComponentRow({ component }: { component: ComponentMetadata }) {
   const dotClass = getGradeDot(hasPassing ? "Excellent" : "Critical");
 
   return (
-    <div className="hover:bg-gray-50 transition-colors">
+    <div className="hover:bg-neutral-10 transition-colors">
       <button
         onClick={() => !hasPassing && setExpanded(!expanded)}
         className={`w-full px-6 py-4 flex items-center justify-between text-left ${hasPassing ? "cursor-default" : ""}`}
       >
         <div className="flex items-center gap-3">
           <div className={`w-2 h-2 rounded-full shrink-0 ${dotClass}`} />
-          <span className="text-sm font-medium text-gray-900">
+          <span className="text-sm font-medium text-neutral-100">
             {component.name}
           </span>
           {component.usesTokens && (
-            <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+            <span className="text-xs text-neutral-60 bg-neutral-20 px-2 py-0.5 rounded-full">
               uses tokens
             </span>
           )}
@@ -234,7 +234,7 @@ function TokenComponentRow({ component }: { component: ComponentMetadata }) {
             target="_blank"
             rel="noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 text-xs text-gray-400 hover:text-orange-500 transition-colors"
+            className="flex items-center gap-1 text-xs text-neutral-60 hover:text-orange-500 transition-colors"
           >
             <ExternalLink size={13} />
             Storybook
@@ -244,7 +244,7 @@ function TokenComponentRow({ component }: { component: ComponentMetadata }) {
             target="_blank"
             rel="noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700 transition-colors"
+            className="flex items-center gap-1 text-xs text-neutral-60 hover:text-neutral-90 transition-colors"
           >
             <ExternalLink size={13} />
             GitHub
@@ -260,9 +260,9 @@ function TokenComponentRow({ component }: { component: ComponentMetadata }) {
                 {component.hardcodedColors.length > 1 ? "s" : ""}
               </span>
               {expanded ? (
-                <ChevronUp size={14} className="text-gray-400" />
+                <ChevronUp size={14} className="text-neutral-60" />
               ) : (
-                <ChevronDown size={14} className="text-gray-400" />
+                <ChevronDown size={14} className="text-neutral-60" />
               )}
             </>
           )}
@@ -292,15 +292,15 @@ function TokenComponentRow({ component }: { component: ComponentMetadata }) {
           </div>
 
           {/* Remediation */}
-          <div className="bg-gray-50 rounded-lg p-3 space-y-1.5">
+          <div className="bg-neutral-10 rounded-lg p-3 space-y-1.5">
             <div className="flex items-center gap-2 mb-2">
               <span className="text-xs px-2 py-0.5 rounded-full border font-medium bg-blue-50 text-blue-700 border-blue-200">
                 ⚙ Engineer
               </span>
             </div>
             <ol className="space-y-1 pl-1">
-              <li className="text-xs flex items-start gap-1.5 text-gray-600">
-                <span className="shrink-0 w-4 text-gray-400">1.</span>
+              <li className="text-xs flex items-start gap-1.5 text-neutral-80">
+                <span className="shrink-0 w-4 text-neutral-60">1.</span>
                 <span>
                   Open {component.name}.tsx —{" "}
                   <a
@@ -313,12 +313,12 @@ function TokenComponentRow({ component }: { component: ComponentMetadata }) {
                   </a>
                 </span>
               </li>
-              <li className="text-xs flex items-start gap-1.5 text-gray-600">
-                <span className="shrink-0 w-4 text-gray-400">2.</span>
+              <li className="text-xs flex items-start gap-1.5 text-neutral-80">
+                <span className="shrink-0 w-4 text-neutral-60">2.</span>
                 <span>Find each hardcoded color value listed above</span>
               </li>
-              <li className="text-xs flex items-start gap-1.5 text-gray-600">
-                <span className="shrink-0 w-4 text-gray-400">3.</span>
+              <li className="text-xs flex items-start gap-1.5 text-neutral-80">
+                <span className="shrink-0 w-4 text-neutral-60">3.</span>
                 <span>
                   Replace with the matching token from{" "}
                   <code className="bg-gray-200 px-1 rounded">
