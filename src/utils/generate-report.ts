@@ -71,6 +71,98 @@ function gradeLegend(rows: [string, string][]): string {
     .join("");
 }
 
+const PARITY_LEGEND: [string, string][] = [
+  [
+    "✦ Excellent",
+    "Figma is a reliable handoff source. Engineers implement from specs with confidence.",
+  ],
+  [
+    "● Good",
+    "Minor drift. Design intent is mostly landing. Batch remaining gaps in next sprint.",
+  ],
+  [
+    "◆ Fair",
+    "Specs aren't consistently making it to code. Schedule a remediation sprint.",
+  ],
+  [
+    "▲ Poor",
+    "Figma no longer reliable for handoff. Engineers making calls that should be design decisions.",
+  ],
+  [
+    "✖ Critical",
+    "Teams working from different sources of truth. Immediate joint action required.",
+  ],
+];
+
+const COVERAGE_LEGEND: [string, string][] = [
+  [
+    "✦ Excellent",
+    "Every component has a Figma spec. A complete shared reference for both teams.",
+  ],
+  [
+    "● Good",
+    "Most components covered. Flag a few unspecced components for design to fill in.",
+  ],
+  [
+    "◆ Fair",
+    "Significant gaps. Engineers building or maintaining components without design guidance.",
+  ],
+  [
+    "▲ Poor",
+    "Large portions of the codebase have no Figma equivalent. Design system ROI reduced.",
+  ],
+  [
+    "✖ Critical",
+    "Figma doesn't represent the codebase. Both teams working independently.",
+  ],
+];
+
+const A11Y_LEGEND: [string, string][] = [
+  [
+    "✦ Excellent",
+    "Near-full WCAG AA compliance. Safe to claim accessibility in product documentation.",
+  ],
+  [
+    "● Good",
+    "Mostly accessible. Minor gaps unlikely to block most assistive tech users.",
+  ],
+  [
+    "◆ Fair",
+    "Noticeable barriers. Some keyboard and screen reader users will encounter friction.",
+  ],
+  [
+    "▲ Poor",
+    "Many interactive components are inaccessible. Real user impact. Legal exposure increases.",
+  ],
+  [
+    "✖ Critical",
+    "System cannot be considered accessible. Likely violates WCAG AA. Legal risk.",
+  ],
+];
+
+const TOKEN_LEGEND: [string, string][] = [
+  [
+    "✦ Excellent",
+    "Fully tokenized. A rebrand or theme change takes hours, not weeks.",
+  ],
+  [
+    "● Good",
+    "Mostly tokenized. A few isolated hardcoded values — easy to clean up in a session.",
+  ],
+  [
+    "◆ Fair",
+    "Scattered hardcoding. A theme change requires manual fixes across multiple components.",
+  ],
+  [
+    "▲ Poor",
+    "Theming is unreliable. Visual updates won't propagate consistently across the system.",
+  ],
+  [
+    "✖ Critical",
+    "Token system being bypassed. Any rebrand requires a full audit. Maintenance cost is high.",
+  ],
+];
+
 export function generateReport({
   parityReport,
   results,
