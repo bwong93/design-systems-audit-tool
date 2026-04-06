@@ -26,6 +26,19 @@ export interface FigmaOnlyDecision {
   createdAt: string;
 }
 
+/** Lightweight score summary saved after each scan for trend tracking */
+export interface ScanHistoryEntry {
+  id?: number;
+  timestamp: string;
+  parityScore: number;
+  parityGrade: string;
+  coverageScore: number;
+  a11yScore: number;
+  totalComponents: number;
+  alignedCount: number;
+  issuesCount: number;
+}
+
 export interface VisualFlag {
   id?: number;
   componentName: string;
@@ -42,6 +55,7 @@ export class AuditDatabase extends Dexie {
   noMatchDecisions!: Table<NoMatchDecision>;
   visualFlags!: Table<VisualFlag>;
   figmaOnlyDecisions!: Table<FigmaOnlyDecision>;
+  scanHistory!: Table<ScanHistoryEntry>;
 
   constructor() {
     super("ds-audit-tool");
@@ -87,6 +101,18 @@ export class AuditDatabase extends Dexie {
       noMatchDecisions: "++id, codeComponentName, reason",
       visualFlags: "++id, componentName, createdAt",
       figmaOnlyDecisions: "++id, figmaCodeName",
+    });
+
+    // Version 6 adds scan history for trend tracking
+    this.version(6).stores({
+      figmaCache: "++id, fileKey, fetchedAt",
+      driftExceptions: "++id, componentName, category, propertyName, createdAt",
+      scanResults: "++id, timestamp",
+      componentMappings: "++id, codeComponentName, figmaComponentName",
+      noMatchDecisions: "++id, codeComponentName, reason",
+      visualFlags: "++id, componentName, createdAt",
+      figmaOnlyDecisions: "++id, figmaCodeName",
+      scanHistory: "++id, timestamp",
     });
   }
 }

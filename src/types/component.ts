@@ -38,6 +38,7 @@ export interface ComponentMetadata {
   hasAriaProps: boolean;
   hasFocusVisible: boolean;
   semanticHTML: boolean;
+  hasKeyboardSupport: boolean;
 
   // Coverage metrics
   testCoverage?: number;

@@ -88,10 +88,36 @@ export const useAuditStore = create<AuditStore>((set) => ({
             progressLabel: "Saving results...",
           });
 
-          // Persist scan result to IndexedDB
-          await db.scanResults.add({
-            ...results,
-            id: undefined,
+          // Calculate a11y score (% of 4 checks passing, averaged across components)
+          const A11Y_KEYS = [
+            "hasAriaProps",
+            "hasFocusVisible",
+            "semanticHTML",
+            "hasKeyboardSupport",
+          ] as const;
+          const a11yScore =
+            results.components.length > 0
+              ? Math.round(
+                  results.components.reduce((sum, c) => {
+                    const passed = A11Y_KEYS.filter(
+                      (k) => c[k as keyof typeof c],
+                    ).length;
+                    return sum + (passed / A11Y_KEYS.length) * 100;
+                  }, 0) / results.components.length,
+                )
+              : 0;
+
+          // Persist scan result and history entry to IndexedDB
+          await db.scanResults.add({ ...results, id: undefined });
+          await db.scanHistory.add({
+            timestamp: new Date().toISOString(),
+            parityScore: parityReport.overallScore,
+            parityGrade: parityReport.overallGrade,
+            coverageScore: parityReport.coverageScore,
+            a11yScore,
+            totalComponents: results.totalComponents,
+            alignedCount: parityReport.alignedCount,
+            issuesCount: parityReport.issuesCount,
           });
         } catch (figmaErr) {
           set({

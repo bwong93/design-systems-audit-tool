@@ -31,6 +31,7 @@ export class ComponentAnalyzer {
       hasAriaProps: this.detectAriaProps(source),
       hasFocusVisible: this.detectFocusVisible(source),
       semanticHTML: this.detectSemanticHTML(source),
+      hasKeyboardSupport: this.detectKeyboardSupport(source),
     };
   }
 
@@ -146,6 +147,10 @@ export class ComponentAnalyzer {
 
   private detectFocusVisible(source: string): boolean {
     return /focus-visible/.test(source);
+  }
+
+  private detectKeyboardSupport(source: string): boolean {
+    return /onKeyDown|onKeyUp|onKeyPress/.test(source);
   }
 
   private detectSemanticHTML(source: string): boolean {

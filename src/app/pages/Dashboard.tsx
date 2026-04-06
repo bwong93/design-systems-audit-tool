@@ -6,10 +6,23 @@ import {
   CheckCircle,
   Package,
   Info,
+  Download,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 import { useAuditStore } from "../../stores/audit-store";
 import { useOnboardingStore } from "../../stores/onboarding-store";
+import { db, type ScanHistoryEntry } from "../../services/db";
+import { generateReport, downloadReport } from "../../utils/generate-report";
 import type { ComponentMetadata } from "../../types/component";
 
 export default function Dashboard() {
@@ -23,6 +36,18 @@ export default function Dashboard() {
     startScan,
   } = useAuditStore();
   const { nucleusPath } = useOnboardingStore();
+  const { parityReport } = useAuditStore();
+
+  const handlePublish = () => {
+    if (!parityReport || !results) return;
+    const date = new Date().toISOString().split("T")[0];
+    const html = generateReport({
+      parityReport,
+      results,
+      nucleusPath: nucleusPath ?? "",
+    });
+    downloadReport(html, date);
+  };
 
   return (
     <div className="p-8">
@@ -35,20 +60,31 @@ export default function Dashboard() {
               {nucleusPath}
             </p>
           </div>
-          <button
-            onClick={startScan}
-            disabled={isScanning}
-            className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
-          >
-            {isScanning ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : results ? (
-              <RefreshCw size={16} />
-            ) : (
-              <Play size={16} />
+          <div className="flex items-center gap-2">
+            {results && parityReport && (
+              <button
+                onClick={handlePublish}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium"
+              >
+                <Download size={16} />
+                Publish Report
+              </button>
             )}
-            {isScanning ? "Scanning..." : results ? "Re-scan" : "Run Audit"}
-          </button>
+            <button
+              onClick={startScan}
+              disabled={isScanning}
+              className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium"
+            >
+              {isScanning ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : results ? (
+                <RefreshCw size={16} />
+              ) : (
+                <Play size={16} />
+              )}
+              {isScanning ? "Scanning..." : results ? "Re-scan" : "Run Audit"}
+            </button>
+          </div>
         </div>
 
         {/* Error state */}
@@ -142,6 +178,9 @@ export default function Dashboard() {
                 tooltipAlign="right"
               />
             </div>
+
+            {/* Score history */}
+            <ScoreHistoryChart />
           </>
         )}
 
@@ -165,6 +204,137 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function ScoreHistoryChart() {
+  const [history, setHistory] = useState<ScanHistoryEntry[]>([]);
+
+  useEffect(() => {
+    db.scanHistory
+      .orderBy("timestamp")
+      .reverse()
+      .limit(8)
+      .toArray()
+      .then((rows) => setHistory(rows.reverse()));
+  }, []);
+
+  if (history.length < 2) return null;
+
+  const data = history.map((entry) => ({
+    date: new Date(entry.timestamp).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    }),
+    Parity: entry.parityScore,
+    Coverage: entry.coverageScore,
+    A11y: entry.a11yScore,
+  }));
+
+  const latest = history[history.length - 1];
+  const previous = history[history.length - 2];
+  const parityDelta = latest.parityScore - previous.parityScore;
+  const a11yDelta = latest.a11yScore - previous.a11yScore;
+
+  const Delta = ({ value }: { value: number }) => (
+    <span
+      className={`text-xs font-medium ${
+        value > 0
+          ? "text-green-600"
+          : value < 0
+            ? "text-red-500"
+            : "text-gray-400"
+      }`}
+    >
+      {value > 0 ? `↑${value}` : value < 0 ? `↓${Math.abs(value)}` : "—"}
+    </span>
+  );
+
+  return (
+    <div className="mt-4 bg-white rounded-lg border border-gray-200 p-6">
+      <div className="flex items-start justify-between mb-4">
+        <div>
+          <h2 className="font-semibold text-gray-900">Score history</h2>
+          <p className="text-xs text-gray-400 mt-0.5">
+            Last {history.length} scans
+          </p>
+        </div>
+        <div className="flex items-center gap-4 text-sm">
+          <div className="text-right">
+            <p className="text-xs text-gray-400">Parity</p>
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold text-gray-900">
+                {latest.parityScore}
+              </span>
+              <Delta value={parityDelta} />
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-gray-400">A11y</p>
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold text-gray-900">
+                {latest.a11yScore}
+              </span>
+              <Delta value={a11yDelta} />
+            </div>
+          </div>
+        </div>
+      </div>
+      <ResponsiveContainer width="100%" height={180}>
+        <LineChart
+          data={data}
+          margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <XAxis
+            dataKey="date"
+            tick={{ fontSize: 11, fill: "#9ca3af" }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <YAxis
+            domain={[0, 100]}
+            tick={{ fontSize: 11, fill: "#9ca3af" }}
+            axisLine={false}
+            tickLine={false}
+          />
+          <Tooltip
+            contentStyle={{
+              fontSize: 12,
+              borderRadius: 8,
+              border: "1px solid #e5e7eb",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            }}
+          />
+          <Legend wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
+          <Line
+            type="monotone"
+            dataKey="Parity"
+            stroke="#6366f1"
+            strokeWidth={2}
+            dot={{ r: 3, fill: "#6366f1" }}
+            activeDot={{ r: 5 }}
+          />
+          <Line
+            type="monotone"
+            dataKey="Coverage"
+            stroke="#8b5cf6"
+            strokeWidth={2}
+            dot={{ r: 3, fill: "#8b5cf6" }}
+            activeDot={{ r: 5 }}
+            strokeDasharray="4 2"
+          />
+          <Line
+            type="monotone"
+            dataKey="A11y"
+            stroke="#10b981"
+            strokeWidth={2}
+            dot={{ r: 3, fill: "#10b981" }}
+            activeDot={{ r: 5 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 }

@@ -159,12 +159,14 @@ export default function ParityView() {
               grade={overallGrade}
               label="Parity Score"
               tooltip="The average alignment score across all matched components. Based on name and prop consistency — excludes components with no Figma match."
+              legendType="parity"
             />
             <ScoreBadge
               score={coverageScore}
               grade={coverageGrade}
               label="Coverage"
               tooltip="The percentage of code components that have a confirmed Figma counterpart. Components marked as 'needs review' or 'missing in Figma' are not counted."
+              legendType="coverage"
             />
           </div>
         </div>
@@ -573,21 +575,91 @@ function MissingInCodeSection({
   );
 }
 
+const SCORE_LEGENDS: Record<
+  "parity" | "coverage",
+  { range: string; grade: string; meaning: string }[]
+> = {
+  parity: [
+    {
+      range: "90–100",
+      grade: "Excellent",
+      meaning:
+        "Tightly aligned. Components match Figma in name and props with minimal drift.",
+    },
+    {
+      range: "75–89",
+      grade: "Good",
+      meaning:
+        "Minor drift. Design intent is mostly reflected in code. Normal for an active system.",
+    },
+    {
+      range: "60–74",
+      grade: "Fair",
+      meaning:
+        "Noticeable misalignment. Some props or names diverge from Figma spec.",
+    },
+    {
+      range: "40–59",
+      grade: "Poor",
+      meaning:
+        "Significant drift. Design and engineering are working from different sources of truth.",
+    },
+    {
+      range: "0–39",
+      grade: "Critical",
+      meaning:
+        "Severe misalignment. Figma is not a reliable reference for implementation.",
+    },
+  ],
+  coverage: [
+    {
+      range: "90–100",
+      grade: "Excellent",
+      meaning: "Nearly all code components have a confirmed Figma counterpart.",
+    },
+    {
+      range: "75–89",
+      grade: "Good",
+      meaning: "Most components are documented in Figma. A few gaps remain.",
+    },
+    {
+      range: "60–74",
+      grade: "Fair",
+      meaning: "Several components lack a Figma counterpart.",
+    },
+    {
+      range: "40–59",
+      grade: "Poor",
+      meaning:
+        "A significant portion of the codebase is undocumented in Figma.",
+    },
+    {
+      range: "0–39",
+      grade: "Critical",
+      meaning: "Most components have no Figma spec. Coverage is unreliable.",
+    },
+  ],
+};
+
 function ScoreBadge({
   score,
   grade,
   label,
   tooltip,
+  legendType,
 }: {
   score: number;
   grade: string;
   label: string;
   tooltip?: string;
+  legendType?: "parity" | "coverage";
 }) {
   const [showTooltip, setShowTooltip] = useState(false);
   const colorClass = getGradeColor(
     grade as Parameters<typeof getGradeColor>[0],
   );
+  const legend = legendType ? SCORE_LEGENDS[legendType] : null;
+
   return (
     <div
       className={`relative border rounded-xl px-5 py-3 text-center ${colorClass}`}
@@ -596,7 +668,7 @@ function ScoreBadge({
         <p className="text-xs font-medium uppercase tracking-wide opacity-70">
           {label}
         </p>
-        {tooltip && (
+        {(tooltip || legend) && (
           <button
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
@@ -608,9 +680,24 @@ function ScoreBadge({
       </div>
       <p className="text-3xl font-bold">{score}</p>
       <p className="text-sm font-medium mt-0.5">{grade}</p>
-      {showTooltip && tooltip && (
-        <div className="absolute top-full mt-2 right-0 z-10 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-lg text-left font-normal normal-case tracking-normal">
-          {tooltip}
+      {showTooltip && (tooltip || legend) && (
+        <div className="absolute top-full mt-2 right-0 z-10 w-72 bg-gray-900 text-white text-xs rounded-lg p-4 shadow-lg text-left font-normal normal-case tracking-normal space-y-2.5">
+          {tooltip && <p className="text-gray-300">{tooltip}</p>}
+          {legend && (
+            <div className="space-y-1.5 border-t border-gray-700 pt-2.5">
+              {legend.map((row) => (
+                <div key={row.grade} className="flex gap-2">
+                  <span className="text-gray-400 w-14 shrink-0">
+                    {row.range}
+                  </span>
+                  <span className="text-gray-200 font-medium w-16 shrink-0">
+                    {row.grade}
+                  </span>
+                  <span className="text-gray-400">{row.meaning}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

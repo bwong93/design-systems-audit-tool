@@ -3,6 +3,7 @@ import Layout from "./app/layouts/Layout";
 import Dashboard from "./app/pages/Dashboard";
 import Onboarding from "./app/pages/Onboarding";
 import ParityView from "./app/pages/ParityView";
+import Accessibility from "./app/pages/Accessibility";
 import Settings from "./app/pages/Settings";
 import { useOnboardingStore } from "./stores/onboarding-store";
 
@@ -25,14 +26,7 @@ function App() {
         <Route path="/" element={<Layout />}>
           <Route index element={<Dashboard />} />
           <Route path="parity" element={<ParityView />} />
-          <Route
-            path="accessibility"
-            element={
-              <div className="p-8 text-gray-500">
-                Accessibility — coming in Phase 4
-              </div>
-            }
-          />
+          <Route path="accessibility" element={<Accessibility />} />
           <Route
             path="tokens"
             element={
