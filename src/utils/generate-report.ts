@@ -18,6 +18,15 @@ function calcA11yScore(results: ScanResult): number {
   );
 }
 
+function calcTokenScore(results: ScanResult): number {
+  if (!results.components.length) return 0;
+  return Math.round(
+    (results.components.filter((c) => c.hardcodedColors.length === 0).length /
+      results.components.length) *
+      100,
+  );
+}
+
 function gradeLabel(score: number): string {
   if (score >= 90) return "Excellent";
   if (score >= 75) return "Good";
@@ -40,6 +49,26 @@ function gradeBg(score: number): string {
   if (score >= 60) return "#fffbeb";
   if (score >= 40) return "#fff7ed";
   return "#fef2f2";
+}
+
+function gradeBorderColor(score: number): string {
+  if (score >= 90) return "#bbf7d0";
+  if (score >= 75) return "#bfdbfe";
+  if (score >= 60) return "#fde047";
+  if (score >= 40) return "#fed7aa";
+  return "#fecaca";
+}
+
+function gradeLegend(rows: [string, string][]): string {
+  return rows
+    .map(
+      ([grade, meaning], i) => `
+      <tr${i % 2 === 1 ? ' style="background:#f9fafb"' : ""}>
+        <td style="padding:5px 12px;font-weight:600;color:${gradeColor(i === 0 ? 95 : i === 1 ? 80 : i === 2 ? 67 : i === 3 ? 50 : 20)};white-space:nowrap;width:90px">${grade}</td>
+        <td style="padding:5px 12px;color:#6b7280;line-height:1.4;font-size:10px">${meaning}</td>
+      </tr>`,
+    )
+    .join("");
 }
 
 export function generateReport({
