@@ -4,8 +4,6 @@ import {
   GitCompare,
   Eye,
   Palette,
-  BookOpen,
-  Box,
   Settings,
 } from "lucide-react";
 
@@ -39,16 +37,6 @@ export default function Layout() {
               label="Accessibility"
             />
             <NavLink to="/tokens" icon={<Palette size={20} />} label="Tokens" />
-            <NavLink
-              to="/documentation"
-              icon={<BookOpen size={20} />}
-              label="Documentation"
-            />
-            <NavLink
-              to="/architecture"
-              icon={<Box size={20} />}
-              label="Architecture"
-            />
           </nav>
 
           {/* Settings */}
