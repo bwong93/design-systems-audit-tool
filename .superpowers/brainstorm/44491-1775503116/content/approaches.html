@@ -1,0 +1,97 @@
+<h2>How should score context appear in the report?</h2>
+<p class="subtitle">Three approaches to educating, driving action, and creating accountability — pick the one that fits best</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Inline taglines</h3>
+      <p>Each score card gets a one-line "what this means" statement directly beneath the grade. No separate section — context travels with the number.</p>
+      <div style="margin-top:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;font-size:12px">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;font-weight:600">Parity Score</div>
+            <div style="font-size:28px;font-weight:700;color:#1d4ed8">78</div>
+            <div style="font-size:11px;color:#1d4ed8;font-weight:500">Good</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid #e5e7eb;font-size:11px;color:#6b7280;line-height:1.5">
+          Minor drift. Engineers are implementing design intent accurately for most components — remaining gaps are unlikely to block users.
+        </div>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;font-size:11px">
+        <span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px">✓ Contextual</span>
+        <span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px">✓ Compact</span>
+        <span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:20px">✗ No action guidance</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Score legend section</h3>
+      <p>A "Reading this report" section at the top explains each score once: what it measures, what causes it to drop, and what each team should do about it.</p>
+      <div style="margin-top:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;font-size:12px">
+        <div style="font-weight:600;margin-bottom:8px;font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#6b7280">Reading this report</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:6px;padding:8px">
+            <div style="font-weight:600;font-size:11px;margin-bottom:4px">Parity Score</div>
+            <div style="font-size:10px;color:#6b7280;line-height:1.4">How closely code reflects the Figma spec. Low = designers and engineers are working from different sources of truth.</div>
+            <div style="margin-top:6px;font-size:10px;color:#1d4ed8">⚙ Engineer action when low</div>
+          </div>
+          <div style="background:white;border:1px solid #e5e7eb;border-radius:6px;padding:8px">
+            <div style="font-weight:600;font-size:11px;margin-bottom:4px">Token Score</div>
+            <div style="font-size:10px;color:#6b7280;line-height:1.4">% of components using design tokens vs hardcoded values. Low = rebranding will require manual fixes everywhere.</div>
+            <div style="margin-top:6px;font-size:10px;color:#1d4ed8">⚙ Engineer action when low</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;font-size:11px">
+        <span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px">✓ Educational</span>
+        <span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px">✓ Clear ownership</span>
+        <span style="background:#fee2e2;color:#991b1b;padding:2px 8px;border-radius:20px">✗ More scrolling</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Hybrid — tagline + grade legend</h3>
+      <p>Each score card has a short impact tagline. Below the scores, a compact grade legend maps Excellent → Critical to a plain-english business consequence and one action per team.</p>
+      <div style="margin-top:12px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;font-size:12px">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;font-weight:600;margin-bottom:8px">Parity Score — How closely code reflects the Figma spec</div>
+        <table style="width:100%;font-size:10px;border-collapse:collapse">
+          <tr style="background:#f3f4f6">
+            <td style="padding:4px 8px;font-weight:600;color:#15803d">Excellent 90–100</td>
+            <td style="padding:4px 8px;color:#6b7280">Tightly aligned. Safe to reference Figma for implementation.</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 8px;font-weight:600;color:#1d4ed8">Good 75–89</td>
+            <td style="padding:4px 8px;color:#6b7280">Minor drift. Batch fixes in next sprint.</td>
+          </tr>
+          <tr style="background:#f3f4f6">
+            <td style="padding:4px 8px;font-weight:600;color:#b45309">Fair 60–74</td>
+            <td style="padding:4px 8px;color:#6b7280">Noticeable gaps. Schedule a remediation sprint.</td>
+          </tr>
+          <tr>
+            <td style="padding:4px 8px;font-weight:600;color:#c2410c">Poor 40–59</td>
+            <td style="padding:4px 8px;color:#6b7280">Figma is no longer a reliable handoff source.</td>
+          </tr>
+          <tr style="background:#f3f4f6">
+            <td style="padding:4px 8px;font-weight:600;color:#b91c1c">Critical 0–39</td>
+            <td style="padding:4px 8px;color:#6b7280">System trust at risk. Requires immediate joint action.</td>
+          </tr>
+        </table>
+      </div>
+      <div style="margin-top:8px;display:flex;gap:8px;font-size:11px">
+        <span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px">✓ Educates + drives action</span>
+        <span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px">✓ Shared ownership</span>
+        <span style="background:#dcfce7;color:#15803d;padding:2px 8px;border-radius:20px">✓ Reusable per score</span>
+      </div>
+    </div>
+  </div>
+
+</div>
