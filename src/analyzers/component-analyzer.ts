@@ -32,6 +32,7 @@ export class ComponentAnalyzer {
       hasFocusVisible: this.detectFocusVisible(source),
       semanticHTML: this.detectSemanticHTML(source),
       hasKeyboardSupport: this.detectKeyboardSupport(source),
+      hardcodedColors: this.detectHardcodedColors(source),
     };
   }
 
@@ -151,6 +152,39 @@ export class ComponentAnalyzer {
 
   private detectKeyboardSupport(source: string): boolean {
     return /onKeyDown|onKeyUp|onKeyPress/.test(source);
+  }
+
+  /**
+   * Detects hardcoded color values in CSS property assignments inside
+   * styled-components template literals. Catches hex (#fff, #ffffff),
+   * rgb(), and rgba() values that should be design tokens instead.
+   */
+  private detectHardcodedColors(source: string): string[] {
+    const violations = new Set<string>();
+
+    // CSS properties that take color values
+    const colorProps =
+      "color|background(?:-color)?|background|border(?:-color)?|border|fill|stroke|outline(?:-color)?|box-shadow|text-shadow";
+
+    // Hex colors: #rgb, #rrggbb, #rrggbbaa
+    const hexPattern = new RegExp(
+      `(?:${colorProps})\\s*:\\s*(#[0-9A-Fa-f]{3,8})\\b`,
+      "gi",
+    );
+    for (const match of source.matchAll(hexPattern)) {
+      violations.add(match[1].toLowerCase());
+    }
+
+    // rgb() and rgba() colors
+    const rgbPattern = new RegExp(
+      `(?:${colorProps})\\s*:\\s*(rgba?\\([^)]+\\))`,
+      "gi",
+    );
+    for (const match of source.matchAll(rgbPattern)) {
+      violations.add(match[1]);
+    }
+
+    return Array.from(violations);
   }
 
   private detectSemanticHTML(source: string): boolean {

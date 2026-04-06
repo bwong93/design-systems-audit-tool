@@ -3,12 +3,12 @@ import {
   Loader2,
   RefreshCw,
   AlertTriangle,
-  CheckCircle,
   Package,
-  Info,
   Download,
+  ArrowRight,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import {
   LineChart,
   Line,
@@ -23,7 +23,19 @@ import { useAuditStore } from "../../stores/audit-store";
 import { useOnboardingStore } from "../../stores/onboarding-store";
 import { db, type ScanHistoryEntry } from "../../services/db";
 import { generateReport, downloadReport } from "../../utils/generate-report";
-import type { ComponentMetadata } from "../../types/component";
+import {
+  getGrade,
+  getGradeColor,
+  averageScores,
+} from "../../services/score-calculator";
+import type { ParityReport } from "../../types/parity";
+
+const A11Y_KEYS = [
+  "hasAriaProps",
+  "hasFocusVisible",
+  "semanticHTML",
+  "hasKeyboardSupport",
+] as const;
 
 export default function Dashboard() {
   const {
@@ -34,9 +46,9 @@ export default function Dashboard() {
     progressLabel,
     error,
     startScan,
+    parityReport,
   } = useAuditStore();
   const { nucleusPath } = useOnboardingStore();
-  const { parityReport } = useAuditStore();
 
   const handlePublish = () => {
     if (!parityReport || !results) return;
@@ -48,6 +60,25 @@ export default function Dashboard() {
     });
     downloadReport(html, date);
   };
+
+  // A11y score derived from scan results
+  const a11yScore =
+    results && results.components.length > 0
+      ? averageScores(
+          results.components.map((c) => {
+            const passed = A11Y_KEYS.filter(
+              (k) => c[k as keyof typeof c],
+            ).length;
+            return Math.round((passed / A11Y_KEYS.length) * 100);
+          }),
+        )
+      : null;
+
+  const a11yFailCount =
+    results?.components.filter((c) => {
+      const passed = A11Y_KEYS.filter((k) => c[k as keyof typeof c]).length;
+      return passed < A11Y_KEYS.length;
+    }).length ?? 0;
 
   return (
     <div className="p-8">
@@ -129,55 +160,56 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* Summary cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <SummaryCard
-                icon={<Package size={20} className="text-primary-600" />}
-                label="Code components"
-                value={String(results.totalComponents)}
-                bg="bg-primary-50"
-                description="Total number of components found in the Nucleus src/components and src/patterns directories."
-              />
-              <SummaryCard
-                icon={<CheckCircle size={20} className="text-green-600" />}
-                label="Fully structured"
-                value={String(
-                  results.components.filter(hasFullStructure).length,
-                )}
-                bg="bg-green-50"
-                description="Components that have all required files: Component.tsx, Component.spec.tsx, Component.stories.tsx, and index.ts."
-              />
-              <SummaryCard
-                icon={<AlertTriangle size={20} className="text-amber-600" />}
-                label="Missing files"
-                value={String(
-                  results.components.filter((c) => !hasFullStructure(c)).length,
-                )}
-                bg="bg-amber-50"
-                description="Components missing one or more required files. Missing tests, stories, or an index file means the component isn't fully documented or properly exported."
-              />
-              <SummaryCard
-                icon={
-                  <Package
-                    size={20}
-                    className={
-                      figmaComponents.length > 0
-                        ? "text-purple-600"
-                        : "text-gray-400"
-                    }
+            {/* Health scores */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+              {parityReport ? (
+                <>
+                  <HealthScoreCard
+                    label="Parity Score"
+                    score={parityReport.overallScore}
+                    detail={`${parityReport.alignedCount} aligned · ${parityReport.issuesCount} with issues`}
+                    to="/parity"
                   />
-                }
-                label="Figma components"
-                value={
-                  figmaComponents.length > 0
-                    ? String(figmaComponents.length)
-                    : "—"
-                }
-                bg={figmaComponents.length > 0 ? "bg-purple-50" : "bg-gray-50"}
-                description="Total components found in your Figma library. Used for parity scoring — comparing what designers have spec'd against what's implemented in code."
-                tooltipAlign="right"
-              />
+                  <HealthScoreCard
+                    label="Coverage"
+                    score={parityReport.coverageScore}
+                    detail={`${results.totalComponents - parityReport.missingInFigma.length} of ${results.totalComponents} matched to Figma`}
+                    to="/parity"
+                  />
+                </>
+              ) : (
+                <>
+                  <HealthScoreCardEmpty
+                    label="Parity Score"
+                    reason="Figma data required"
+                  />
+                  <HealthScoreCardEmpty
+                    label="Coverage"
+                    reason="Figma data required"
+                  />
+                </>
+              )}
+              {a11yScore !== null ? (
+                <HealthScoreCard
+                  label="A11y Score"
+                  score={a11yScore}
+                  detail={`${results.components.length - a11yFailCount} of ${results.components.length} passing all checks`}
+                  to="/accessibility"
+                />
+              ) : (
+                <HealthScoreCardEmpty label="A11y Score" reason="Run a scan" />
+              )}
             </div>
+
+            {/* Health narrative */}
+            {parityReport && a11yScore !== null && (
+              <HealthNarrative
+                parityReport={parityReport}
+                a11yFailCount={a11yFailCount}
+                totalComponents={results.totalComponents}
+                figmaCount={figmaComponents.length}
+              />
+            )}
 
             {/* Score history */}
             <ScoreHistoryChart />
@@ -207,6 +239,104 @@ export default function Dashboard() {
     </div>
   );
 }
+
+// --- Health score card ---
+
+function HealthScoreCard({
+  label,
+  score,
+  detail,
+  to,
+}: {
+  label: string;
+  score: number;
+  detail: string;
+  to: string;
+}) {
+  const grade = getGrade(score);
+  const colorClass = getGradeColor(grade);
+
+  return (
+    <div className={`rounded-xl border p-6 ${colorClass}`}>
+      <p className="text-xs font-semibold uppercase tracking-wide opacity-60 mb-4">
+        {label}
+      </p>
+      <p className="text-5xl font-bold leading-none">{score}</p>
+      <p className="text-base font-semibold mt-2">{grade}</p>
+      <p className="text-xs mt-3 opacity-60">{detail}</p>
+      <Link
+        to={to}
+        className="mt-4 inline-flex items-center gap-1 text-xs font-medium opacity-70 hover:opacity-100 transition-opacity"
+      >
+        View details <ArrowRight size={11} />
+      </Link>
+    </div>
+  );
+}
+
+function HealthScoreCardEmpty({
+  label,
+  reason,
+}: {
+  label: string;
+  reason: string;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-gray-50 p-6">
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-4">
+        {label}
+      </p>
+      <p className="text-5xl font-bold text-gray-200 leading-none">—</p>
+      <p className="text-xs text-gray-400 mt-4">{reason}</p>
+    </div>
+  );
+}
+
+// --- Health narrative ---
+
+function HealthNarrative({
+  parityReport,
+  a11yFailCount,
+  totalComponents,
+  figmaCount,
+}: {
+  parityReport: ParityReport;
+  a11yFailCount: number;
+  totalComponents: number;
+  figmaCount: number;
+}) {
+  const parts: string[] = [];
+
+  parts.push(
+    `${totalComponents} code components · ${figmaCount > 0 ? figmaCount + " in Figma" : "no Figma data"}`,
+  );
+  if (parityReport.alignedCount > 0) {
+    parts.push(`${parityReport.alignedCount} aligned`);
+  }
+  if (parityReport.issuesCount > 0) {
+    parts.push(
+      `${parityReport.issuesCount} with issue${parityReport.issuesCount > 1 ? "s" : ""}`,
+    );
+  }
+  if (parityReport.missingInFigma.length > 0) {
+    parts.push(`${parityReport.missingInFigma.length} missing in Figma`);
+  }
+  if (a11yFailCount > 0) {
+    parts.push(`${a11yFailCount} with a11y gap${a11yFailCount > 1 ? "s" : ""}`);
+  }
+
+  return (
+    <p className="text-sm text-gray-400 mt-2 mb-2">
+      {parts.join(" · ")} · Last scanned{" "}
+      {new Date(parityReport.timestamp).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}
+    </p>
+  );
+}
+
+// --- Score history chart ---
 
 function ScoreHistoryChart() {
   const [history, setHistory] = useState<ScanHistoryEntry[]>([]);
@@ -335,61 +465,6 @@ function ScoreHistoryChart() {
           />
         </LineChart>
       </ResponsiveContainer>
-    </div>
-  );
-}
-
-function hasFullStructure(c: ComponentMetadata) {
-  return c.hasSpec && c.hasStories && c.hasIndex;
-}
-
-function SummaryCard({
-  icon,
-  label,
-  value,
-  bg,
-  description,
-  tooltipAlign = "left",
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  bg: string;
-  description: string;
-  tooltipAlign?: "left" | "right";
-}) {
-  const [showTooltip, setShowTooltip] = useState(false);
-
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 p-5">
-      <div className="flex items-start gap-4">
-        <div className={`${bg} p-2.5 rounded-lg shrink-0`}>{icon}</div>
-        <div className="flex-1 min-w-0">
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-          <div className="flex items-center gap-1 mt-0.5">
-            <p className="text-sm text-gray-500">{label}</p>
-            <div className="relative">
-              <button
-                onMouseEnter={() => setShowTooltip(true)}
-                onMouseLeave={() => setShowTooltip(false)}
-                className="text-gray-300 hover:text-gray-400 transition-colors"
-                aria-label={`More info about ${label}`}
-              >
-                <Info size={13} />
-              </button>
-              {showTooltip && (
-                <div
-                  className={`absolute top-5 z-10 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-lg ${
-                    tooltipAlign === "right" ? "right-0" : "left-0"
-                  }`}
-                >
-                  {description}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

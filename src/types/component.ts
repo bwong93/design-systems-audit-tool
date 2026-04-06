@@ -40,6 +40,9 @@ export interface ComponentMetadata {
   semanticHTML: boolean;
   hasKeyboardSupport: boolean;
 
+  // Token usage
+  hardcodedColors: string[];
+
   // Coverage metrics
   testCoverage?: number;
   storyCount?: number;
