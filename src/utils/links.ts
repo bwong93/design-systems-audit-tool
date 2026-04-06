@@ -13,11 +13,16 @@ export function githubLink(filePath: string): string {
 
 /**
  * Storybook story link for a component.
- * Follows Nucleus story title convention: "Components/Button" → components-button--docs
+ * Uses the actual story title (e.g. "Patterns/Accordion") when available,
+ * falling back to the component name under Components/.
  */
-export function storybookLink(componentName: string): string {
-  const slug = componentName.toLowerCase().replace(/\s+/g, "-");
-  return `${storybookUrl}/?path=/docs/components-${slug}--docs`;
+export function storybookLink(
+  componentName: string,
+  storyTitle?: string,
+): string {
+  const base = storyTitle ?? `Components/${componentName}`;
+  const slug = base.toLowerCase().replace(/\s+/g, "-").replace(/\//g, "-");
+  return `${storybookUrl}/?path=/docs/${slug}--docs`;
 }
 
 /**

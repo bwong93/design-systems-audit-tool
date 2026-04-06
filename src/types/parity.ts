@@ -80,6 +80,8 @@ export interface ComponentParityResult {
   approvedExceptionCount: number;
   /** Per-property comparison breakdown — populated when Figma properties are available */
   propDetails: PropDetail[];
+  /** Storybook story title e.g. "Patterns/Accordion" — used to build the correct story URL */
+  storyTitle?: string;
 }
 
 /** A Figma component that has no matching code component */

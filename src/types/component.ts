@@ -43,6 +43,9 @@ export interface ComponentMetadata {
   // Token usage
   hardcodedColors: string[];
 
+  // Storybook
+  storyTitle?: string;
+
   // Coverage metrics
   testCoverage?: number;
   storyCount?: number;

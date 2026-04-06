@@ -9,7 +9,7 @@ export const auditConfig = {
     githubUrl: "https://github.com/meetearnest/nucleus",
     /** Branch to link to on GitHub */
     githubBranch: "main",
-    /** Storybook base URL — update to your deployed Storybook if available */
+    /** Storybook base URL — runs locally via `yarn storybook` in Nucleus */
     storybookUrl: import.meta.env.VITE_STORYBOOK_URL || "http://localhost:6006",
   },
   figma: {

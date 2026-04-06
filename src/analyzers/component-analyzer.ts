@@ -33,6 +33,7 @@ export class ComponentAnalyzer {
       semanticHTML: this.detectSemanticHTML(source),
       hasKeyboardSupport: this.detectKeyboardSupport(source),
       hardcodedColors: this.detectHardcodedColors(source),
+      storyTitle: this.extractStoryTitle(files.storiesFile),
     };
   }
 
@@ -152,6 +153,14 @@ export class ComponentAnalyzer {
 
   private detectKeyboardSupport(source: string): boolean {
     return /onKeyDown|onKeyUp|onKeyPress/.test(source);
+  }
+
+  /** Reads the stories file and extracts the Storybook title e.g. "Patterns/Accordion" */
+  private extractStoryTitle(storiesFile?: string): string | undefined {
+    if (!storiesFile || !fs.existsSync(storiesFile)) return undefined;
+    const source = fs.readFileSync(storiesFile, "utf-8");
+    const match = source.match(/title:\s*['"]([^'"]+)['"]/);
+    return match?.[1];
   }
 
   /**
