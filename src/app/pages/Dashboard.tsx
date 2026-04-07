@@ -51,13 +51,23 @@ export default function Dashboard() {
   } = useAuditStore();
   const { nucleusPath } = useOnboardingStore();
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!parityReport || !results) return;
     const date = new Date().toISOString().split("T")[0];
+
+    const history = await db.scanHistory
+      .orderBy("timestamp")
+      .reverse()
+      .limit(2)
+      .toArray();
+    const delta =
+      history.length >= 2 ? computeDelta(history[0], history[1]) : null;
+
     const html = generateReport({
       parityReport,
       results,
       nucleusPath: nucleusPath ?? "",
+      delta: delta ?? undefined,
     });
     downloadReport(html, date);
   };
