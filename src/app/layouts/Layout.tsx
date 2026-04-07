@@ -6,6 +6,7 @@ import {
   Palette,
   Settings,
 } from "lucide-react";
+import ScanToast from "../components/ScanToast";
 
 export default function Layout() {
   return (
@@ -15,8 +16,8 @@ export default function Layout() {
         <div className="flex flex-col h-full">
           {/* Logo/Title */}
           <div className="p-6 border-b border-gray-200">
-            <h1 className="text-xl font-bold text-gray-900">DS Audit Tool</h1>
-            <p className="text-sm text-gray-500 mt-1">Design Systems</p>
+            <h1 className="text-xl font-bold text-gray-900">Loupe</h1>
+            <p className="text-sm text-gray-500 mt-1">Design · Code · Parity</p>
           </div>
 
           {/* Navigation */}
@@ -29,7 +30,7 @@ export default function Layout() {
             <NavLink
               to="/parity"
               icon={<GitCompare size={20} />}
-              label="DS Parity"
+              label="Figma Parity"
             />
             <NavLink
               to="/accessibility"
@@ -54,6 +55,8 @@ export default function Layout() {
       <main className="flex-1 overflow-auto">
         <Outlet />
       </main>
+
+      <ScanToast />
     </div>
   );
 }
