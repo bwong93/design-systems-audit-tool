@@ -29,6 +29,7 @@ import {
   averageScores,
 } from "../../services/score-calculator";
 import type { ParityReport } from "../../types/parity";
+import { computeDelta, type ScanDelta } from "../../services/delta-calculator";
 
 const A11Y_KEYS = [
   "hasAriaProps",
@@ -235,6 +236,8 @@ export default function Dashboard() {
               />
             )}
 
+            <DeltaSection />
+
             {/* Score history */}
             <ScoreHistoryChart />
           </>
@@ -364,6 +367,137 @@ function HealthNarrative({
         minute: "2-digit",
       })}
     </p>
+  );
+}
+
+// --- Delta section ---
+
+function DeltaSection() {
+  const [delta, setDelta] = useState<ScanDelta | null>(null);
+  const [previousDate, setPreviousDate] = useState<string | null>(null);
+  const [daysAgo, setDaysAgo] = useState<number | null>(null);
+
+  useEffect(() => {
+    db.scanHistory
+      .orderBy("timestamp")
+      .reverse()
+      .limit(2)
+      .toArray()
+      .then((rows) => {
+        if (rows.length < 2) return;
+        const [current, previous] = rows;
+        const computed = computeDelta(current, previous);
+        if (!computed) return;
+        setDelta(computed);
+        setPreviousDate(
+          new Date(previous.timestamp).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+          }),
+        );
+        const diffMs = Date.now() - new Date(previous.timestamp).getTime();
+        setDaysAgo(Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+      });
+  }, []);
+
+  if (!delta) return null;
+
+  const DeltaBadge = ({ value, label }: { value: number; label: string }) => (
+    <div className="text-center">
+      <div
+        className={`text-lg font-bold ${
+          value > 0
+            ? "text-green-700"
+            : value < 0
+              ? "text-red-600"
+              : "text-gray-400"
+        }`}
+      >
+        {value > 0 ? `↑${value}` : value < 0 ? `↓${Math.abs(value)}` : "—"}
+      </div>
+      <div className="text-xs text-gray-400 mt-0.5">{label}</div>
+    </div>
+  );
+
+  const overallLabel =
+    delta.overallDelta > 0
+      ? `Overall ↑${delta.overallDelta} pts`
+      : delta.overallDelta < 0
+        ? `Overall ↓${Math.abs(delta.overallDelta)} pts`
+        : "No change";
+
+  return (
+    <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+        <div>
+          <span className="font-semibold text-sm text-gray-900">
+            Since last scan
+          </span>
+          <span className="text-xs text-gray-400 ml-2">
+            {daysAgo === 0
+              ? "today"
+              : daysAgo === 1
+                ? "1 day ago"
+                : `${daysAgo} days ago`}{" "}
+            · {previousDate}
+          </span>
+        </div>
+        <span
+          className={`text-xs px-2.5 py-1 rounded-full border font-medium ${
+            delta.overallDelta > 0
+              ? "bg-blue-50 text-blue-700 border-blue-200"
+              : delta.overallDelta < 0
+                ? "bg-red-50 text-red-600 border-red-200"
+                : "bg-gray-50 text-gray-500 border-gray-200"
+          }`}
+        >
+          {overallLabel}
+        </span>
+      </div>
+
+      <div className="px-5 py-4 grid grid-cols-4 gap-4 border-b border-gray-100">
+        <DeltaBadge value={delta.parityDelta} label="Parity" />
+        <DeltaBadge value={delta.coverageDelta} label="Coverage" />
+        <DeltaBadge value={delta.a11yDelta} label="A11y" />
+        <DeltaBadge value={delta.tokenDelta} label="Token" />
+      </div>
+
+      {(delta.resolvedComponents.length > 0 ||
+        delta.newIssueComponents.length > 0) && (
+        <div className="px-5 py-3 grid grid-cols-2 gap-3">
+          {delta.resolvedComponents.length > 0 && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <p className="text-xs font-semibold text-green-700 mb-2">
+                ✓ {delta.resolvedComponents.length} issue
+                {delta.resolvedComponents.length > 1 ? "s" : ""} resolved
+              </p>
+              <div className="space-y-1">
+                {delta.resolvedComponents.map((name) => (
+                  <p key={name} className="text-xs text-gray-600">
+                    {name}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+          {delta.newIssueComponents.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-xs font-semibold text-red-700 mb-2">
+                ⚠ {delta.newIssueComponents.length} new issue
+                {delta.newIssueComponents.length > 1 ? "s" : ""} introduced
+              </p>
+              <div className="space-y-1">
+                {delta.newIssueComponents.map((name) => (
+                  <p key={name} className="text-xs text-gray-600">
+                    {name}
+                  </p>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
