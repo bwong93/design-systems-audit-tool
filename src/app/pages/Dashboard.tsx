@@ -373,6 +373,7 @@ function HealthNarrative({
 // --- Delta section ---
 
 function DeltaSection() {
+  const { parityReport } = useAuditStore();
   const [delta, setDelta] = useState<ScanDelta | null>(null);
   const [previousDate, setPreviousDate] = useState<string | null>(null);
   const [daysAgo, setDaysAgo] = useState<number | null>(null);
@@ -398,7 +399,7 @@ function DeltaSection() {
         const diffMs = Date.now() - new Date(previous.timestamp).getTime();
         setDaysAgo(Math.floor(diffMs / (1000 * 60 * 60 * 24)));
       });
-  }, []);
+  }, [parityReport]);
 
   if (!delta) return null;
 
