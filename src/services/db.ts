@@ -26,6 +26,11 @@ export interface FigmaOnlyDecision {
   createdAt: string;
 }
 
+export interface ComponentStatus {
+  parityStatus: string;
+  a11yScore: number;
+}
+
 /** Lightweight score summary saved after each scan for trend tracking */
 export interface ScanHistoryEntry {
   id?: number;
@@ -34,9 +39,11 @@ export interface ScanHistoryEntry {
   parityGrade: string;
   coverageScore: number;
   a11yScore: number;
+  tokenScore?: number;
   totalComponents: number;
   alignedCount: number;
   issuesCount: number;
+  componentStatuses?: Record<string, ComponentStatus>;
 }
 
 export interface VisualFlag {
@@ -105,6 +112,18 @@ export class AuditDatabase extends Dexie {
 
     // Version 6 adds scan history for trend tracking
     this.version(6).stores({
+      figmaCache: "++id, fileKey, fetchedAt",
+      driftExceptions: "++id, componentName, category, propertyName, createdAt",
+      scanResults: "++id, timestamp",
+      componentMappings: "++id, codeComponentName, figmaComponentName",
+      noMatchDecisions: "++id, codeComponentName, reason",
+      visualFlags: "++id, componentName, createdAt",
+      figmaOnlyDecisions: "++id, figmaCodeName",
+      scanHistory: "++id, timestamp",
+    });
+
+    // Version 7 adds tokenScore and componentStatuses to scan history
+    this.version(7).stores({
       figmaCache: "++id, fileKey, fetchedAt",
       driftExceptions: "++id, componentName, category, propertyName, createdAt",
       scanResults: "++id, timestamp",
