@@ -10,6 +10,9 @@ export default function ScanToast() {
   const worsened = scanDelta.overallDelta < 0;
   const noChange =
     scanDelta.overallDelta === 0 &&
+    scanDelta.coverageDelta === 0 &&
+    scanDelta.a11yDelta === 0 &&
+    scanDelta.tokenDelta === 0 &&
     scanDelta.resolvedComponents.length === 0 &&
     scanDelta.newIssueComponents.length === 0;
 
