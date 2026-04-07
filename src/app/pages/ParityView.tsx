@@ -70,14 +70,27 @@ export default function ParityView() {
   const [autoExpandComponent, setAutoExpandComponent] = useState<string | null>(
     null,
   );
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
-  const handleActionNavigate = (componentName: string) => {
-    setAutoExpandComponent(componentName);
-    setTimeout(() => {
-      document
-        .getElementById(`component-row-${componentName}`)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" });
-    }, 50);
+  const handleActionNavigate = (
+    item: import("../../services/priority-calculator").ActionItem,
+  ) => {
+    if (item.isNeedsReviewGroup) {
+      setStatusFilter("needs-review");
+      setTimeout(() => {
+        document
+          .getElementById("component-list")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    } else {
+      setStatusFilter(null);
+      setAutoExpandComponent(item.componentName);
+      setTimeout(() => {
+        document
+          .getElementById(`component-row-${item.componentName}`)
+          ?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 50);
+    }
   };
 
   if (!results) {
@@ -143,7 +156,7 @@ export default function ParityView() {
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">DS Parity</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Figma Parity</h1>
             <p className="text-gray-500 mt-1 text-sm">
               Compare Figma components against code implementations, surface
               mismatches, and track intentional differences.
@@ -212,12 +225,30 @@ export default function ParityView() {
         />
 
         {/* Component list */}
-        <div className="bg-white rounded-lg border border-gray-200">
-          <div className="px-6 py-4 border-b border-gray-100">
+        <div
+          id="component-list"
+          className="bg-white rounded-lg border border-gray-200"
+        >
+          <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
             <h2 className="font-semibold text-gray-900">Components</h2>
+            {statusFilter === "needs-review" && (
+              <span className="flex items-center gap-1.5 text-xs bg-violet-50 text-violet-700 border border-violet-200 px-2.5 py-1 rounded-full">
+                Showing: needs review
+                <button
+                  onClick={() => setStatusFilter(null)}
+                  className="ml-0.5 hover:text-violet-900 transition-colors"
+                  aria-label="Clear filter"
+                >
+                  ✕
+                </button>
+              </span>
+            )}
           </div>
           <div className="divide-y divide-gray-100">
-            {components.map((component) => (
+            {(statusFilter
+              ? components.filter((c) => c.status === statusFilter)
+              : components
+            ).map((component) => (
               <ComponentParityRow
                 key={component.componentName}
                 component={component}
@@ -282,7 +313,7 @@ function ActionItemsPanel({
   onNavigate,
 }: {
   report: import("../../types/parity").ParityReport;
-  onNavigate: (componentName: string) => void;
+  onNavigate: (item: ActionItem) => void;
 }) {
   const [open, setOpen] = useState(false);
   const items = calculatePriorities(report);
@@ -351,7 +382,7 @@ function ActionItemsPanel({
                     {tierItems.map((item) => (
                       <button
                         key={item.componentName + item.label}
-                        onClick={() => onNavigate(item.componentName)}
+                        onClick={() => onNavigate(item)}
                         className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left hover:brightness-95 transition-all ${cfg.bg} ${cfg.border}`}
                       >
                         <div className="flex-1 min-w-0">

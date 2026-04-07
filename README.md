@@ -1,4 +1,6 @@
-# DS Audit Tool
+# Loupe
+
+Design · Code · Parity
 
 A local web tool for auditing the Nucleus design system. Compares your Figma component library against the code implementation, surfaces parity gaps, and tracks accessibility compliance — so drift gets caught before it ships.
 
@@ -6,7 +8,7 @@ A local web tool for auditing the Nucleus design system. Compares your Figma com
 
 ## What it does
 
-- **DS Parity** — matches Figma components to code, compares props, flags mismatches and missing components
+- **Figma Parity** — matches Figma components to code, compares props, flags mismatches and missing components
 - **Accessibility** — checks 4 WCAG 2.2 AA criteria across all components (focus-visible, ARIA, semantic HTML, keyboard support)
 - **Score history** — tracks parity and accessibility scores over time so you can measure improvement sprint over sprint
 - **Action items** — ranks issues by effort so you know what to fix first
@@ -20,6 +22,12 @@ A local web tool for auditing the Nucleus design system. Compares your Figma com
 - Yarn
 - The [Nucleus repo](https://github.com/meetearnest/nucleus) cloned locally
 - A Figma personal access token (see below)
+- **Storybook running** — Loupe links to component stories. Start it in Nucleus before scanning:
+
+```bash
+cd /path/to/nucleus
+yarn storybook
+```
 
 ---
 
@@ -58,7 +66,7 @@ That's it. Your settings are saved locally and you won't need to re-enter them.
 1. Open Figma → click your avatar (top left) → **Settings**
 2. Scroll to **Security** → **Personal access tokens**
 3. Click **Generate new token**
-4. Name it (e.g. `DS Audit Tool`) and set expiry as needed
+4. Name it (e.g. `Loupe`) and set expiry as needed
 5. Under scopes, enable:
    - `File content` — read
    - `Library assets` — read
