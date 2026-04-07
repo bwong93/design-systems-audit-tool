@@ -386,17 +386,20 @@ function DeltaSection() {
   const { parityReport } = useAuditStore();
   const [delta, setDelta] = useState<ScanDelta | null>(null);
   const [previousDate, setPreviousDate] = useState<string | null>(null);
-  const [daysAgo, setDaysAgo] = useState<number | null>(null);
 
   useEffect(() => {
+    const thirtyDaysAgo = new Date(
+      Date.now() - 30 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+
     db.scanHistory
       .orderBy("timestamp")
       .reverse()
-      .limit(2)
       .toArray()
       .then((rows) => {
-        if (rows.length < 2) return;
-        const [current, previous] = rows;
+        const current = rows[0];
+        const previous = rows.find((e) => e.timestamp <= thirtyDaysAgo);
+        if (!current || !previous) return;
         const computed = computeDelta(current, previous);
         if (!computed) return;
         setDelta(computed);
@@ -406,8 +409,6 @@ function DeltaSection() {
             day: "numeric",
           }),
         );
-        const diffMs = Date.now() - new Date(previous.timestamp).getTime();
-        setDaysAgo(Math.floor(diffMs / (1000 * 60 * 60 * 24)));
       });
   }, [parityReport]);
 
@@ -442,15 +443,10 @@ function DeltaSection() {
       <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
         <div>
           <span className="font-semibold text-sm text-gray-900">
-            Since last scan
+            Past 30 days
           </span>
           <span className="text-xs text-gray-400 ml-2">
-            {daysAgo === 0
-              ? "today"
-              : daysAgo === 1
-                ? "1 day ago"
-                : `${daysAgo} days ago`}{" "}
-            · {previousDate}
+            since {previousDate}
           </span>
         </div>
         <span

@@ -75,7 +75,7 @@ export const useAuditStore = create<AuditStore>((set) => ({
       if (creds) {
         try {
           const client = new FigmaClient(creds.token, creds.fileKey);
-          const figmaComponents = await client.fetchComponents();
+          const figmaComponents = await client.fetchComponents(true);
           set({
             figmaComponents,
             progress: 75,
