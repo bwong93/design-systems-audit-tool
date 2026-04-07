@@ -3,6 +3,8 @@ import { runScan } from "../services/scan-service";
 import { FigmaClient } from "../figma/figma-client";
 import { runParityCheck } from "../services/parity-checker";
 import { db } from "../services/db";
+import { computeDelta, type ScanDelta } from "../services/delta-calculator";
+import type { ComponentStatus } from "../services/db";
 import type { ScanResult } from "../types/component";
 import type { FigmaComponent } from "../types/figma";
 import type { ParityReport } from "../types/parity";
@@ -16,9 +18,11 @@ interface AuditStore {
   parityReport: ParityReport | null;
   figmaError: string | null;
   error: string | null;
+  scanDelta: ScanDelta | null;
   startScan: () => Promise<void>;
   hydrate: () => Promise<void>;
   clearResults: () => void;
+  clearScanDelta: () => void;
 }
 
 function getStoredFigmaCredentials(): {
@@ -46,6 +50,7 @@ export const useAuditStore = create<AuditStore>((set) => ({
   parityReport: null,
   figmaError: null,
   error: null,
+  scanDelta: null,
 
   startScan: async () => {
     set({
@@ -108,18 +113,67 @@ export const useAuditStore = create<AuditStore>((set) => ({
                 )
               : 0;
 
-          // Persist scan result and history entry to IndexedDB
-          await db.scanResults.add({ ...results, id: undefined });
-          await db.scanHistory.add({
+          // Build per-component status snapshot for delta tracking
+          const componentStatuses: Record<string, ComponentStatus> = {};
+          for (const comp of parityReport.components) {
+            const codeComp = results.components.find(
+              (c) => c.name === comp.componentName,
+            );
+            const a11yPassed = codeComp
+              ? A11Y_KEYS.filter((k) => codeComp[k as keyof typeof codeComp])
+                  .length
+              : 0;
+            componentStatuses[comp.componentName] = {
+              parityStatus: comp.status,
+              a11yScore: Math.round((a11yPassed / A11Y_KEYS.length) * 100),
+            };
+          }
+          for (const name of parityReport.missingInFigma) {
+            componentStatuses[name] = {
+              parityStatus: "missing-in-figma",
+              a11yScore: 0,
+            };
+          }
+
+          // Token score (same formula as Dashboard + generate-report)
+          const tokenScore =
+            results.components.length > 0
+              ? Math.round(
+                  (results.components.filter(
+                    (c) => c.hardcodedColors.length === 0,
+                  ).length /
+                    results.components.length) *
+                    100,
+                )
+              : 0;
+
+          const currentEntry = {
             timestamp: new Date().toISOString(),
             parityScore: parityReport.overallScore,
             parityGrade: parityReport.overallGrade,
             coverageScore: parityReport.coverageScore,
             a11yScore,
+            tokenScore,
             totalComponents: results.totalComponents,
             alignedCount: parityReport.alignedCount,
             issuesCount: parityReport.issuesCount,
-          });
+            componentStatuses,
+          };
+
+          await db.scanResults.add({ ...results, id: undefined });
+          await db.scanHistory.add(currentEntry);
+
+          // Compute delta against the previous scan entry
+          const allHistory = await db.scanHistory
+            .orderBy("timestamp")
+            .reverse()
+            .limit(2)
+            .toArray();
+          const previousEntry = allHistory.length >= 2 ? allHistory[1] : null;
+          const delta = previousEntry
+            ? computeDelta(currentEntry, previousEntry)
+            : null;
+          set({ scanDelta: delta });
         } catch (figmaErr) {
           set({
             figmaError:
@@ -181,4 +235,6 @@ export const useAuditStore = create<AuditStore>((set) => ({
       error: null,
       figmaError: null,
     }),
+
+  clearScanDelta: () => set({ scanDelta: null }),
 }));

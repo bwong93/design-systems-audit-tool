@@ -39,7 +39,7 @@ export interface ScanHistoryEntry {
   parityGrade: string;
   coverageScore: number;
   a11yScore: number;
-  tokenScore?: number;
+  tokenScore: number;
   totalComponents: number;
   alignedCount: number;
   issuesCount: number;
