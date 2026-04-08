@@ -5,8 +5,11 @@ import {
   Eye,
   Palette,
   Settings,
+  RefreshCw,
+  Loader2,
 } from "lucide-react";
 import ScanToast from "../components/ScanToast";
+import { useAuditStore } from "../../stores/audit-store";
 
 export default function Layout() {
   return (
@@ -40,8 +43,9 @@ export default function Layout() {
             <NavLink to="/tokens" icon={<Palette size={20} />} label="Tokens" />
           </nav>
 
-          {/* Settings */}
-          <div className="p-4 border-t border-gray-200">
+          {/* Footer actions */}
+          <div className="p-4 border-t border-gray-200 space-y-1">
+            <RescanButton />
             <NavLink
               to="/settings"
               icon={<Settings size={20} />}
@@ -58,6 +62,27 @@ export default function Layout() {
 
       <ScanToast />
     </div>
+  );
+}
+
+function RescanButton() {
+  const { isScanning, results, startScan } = useAuditStore();
+
+  if (!results) return null;
+
+  return (
+    <button
+      onClick={startScan}
+      disabled={isScanning}
+      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sm text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {isScanning ? (
+        <Loader2 size={20} className="animate-spin shrink-0" />
+      ) : (
+        <RefreshCw size={20} className="shrink-0" />
+      )}
+      <span>{isScanning ? "Scanning..." : "Re-scan"}</span>
+    </button>
   );
 }
 
