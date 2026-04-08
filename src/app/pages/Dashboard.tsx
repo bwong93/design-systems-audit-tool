@@ -37,6 +37,110 @@ const A11Y_KEYS = [
   "hasKeyboardSupport",
 ] as const;
 
+type ImpactInsight = {
+  headline: string;
+  body: string;
+  affects: string;
+  teamImpact: string;
+};
+
+function getImpactInsight(scores: {
+  a11y: number | null;
+  token: number | null;
+  parity: number | null;
+  coverage: number | null;
+}): ImpactInsight {
+  const { a11y, token, parity, coverage } = scores;
+
+  if (a11y !== null && a11y < 75) {
+    return {
+      headline: "Accessibility gaps are your highest-priority risk",
+      body: "An estimated 1 in 4 adults lives with some form of disability. At your current score, a meaningful portion of users may encounter barriers with interactive components — creating both product quality and compliance risk. Improving this score is one of the highest-leverage investments your team can make.",
+      affects: "Users with disabilities",
+      teamImpact: "Compliance & legal risk",
+    };
+  }
+  if (token !== null && token < 75) {
+    return {
+      headline: "Hardcoded colors are creating future rework",
+      body: "Every component that bypasses design tokens adds to the manual effort required when the brand evolves. At your current adoption rate, a rebrand or theme change would require hands-on edits across a significant portion of your component library.",
+      affects: "All users (theming)",
+      teamImpact: "Rebrand & maintenance cost",
+    };
+  }
+  if (parity !== null && parity < 75) {
+    return {
+      headline: "Design-to-code drift is slowing delivery",
+      body: "When Figma designs and code implementations diverge, engineers spend time reverse-engineering intent rather than building. Closing this gap accelerates delivery, reduces QA cycles, and ensures your product looks the way it was designed.",
+      affects: "All users",
+      teamImpact: "Delivery speed & revision cycles",
+    };
+  }
+  if (coverage !== null && coverage < 75) {
+    return {
+      headline: "Parts of your codebase exist outside the design system",
+      body: "Components without a Figma counterpart operate outside your design process. When coverage is low, designers and engineers work from different sources of truth — leading to inconsistent decisions and slower iteration.",
+      affects: "All users",
+      teamImpact: "Onboarding & handoff clarity",
+    };
+  }
+  return {
+    headline: "Your design system is in strong health",
+    body: "All four metrics are tracking well. This means faster delivery, lower maintenance costs, and a product that's consistent and accessible for every user. Keep the momentum going.",
+    affects: "",
+    teamImpact: "",
+  };
+}
+
+function ImpactCallout({
+  a11yScore,
+  tokenScore,
+  parityScore,
+  coverageScore,
+}: {
+  a11yScore: number | null;
+  tokenScore: number | null;
+  parityScore: number | null;
+  coverageScore: number | null;
+}) {
+  const insight = getImpactInsight({
+    a11y: a11yScore,
+    token: tokenScore,
+    parity: parityScore,
+    coverage: coverageScore,
+  });
+
+  return (
+    <div className="bg-white border border-gray-200 border-l-[3px] border-l-indigo-500 rounded-lg px-4 py-3 mt-3 mb-1">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-indigo-500 mb-1.5">
+        Why this matters
+      </p>
+      <p className="text-sm font-semibold text-gray-900 mb-1">
+        {insight.headline}
+      </p>
+      <p className="text-xs text-gray-500 leading-relaxed mb-2.5">
+        {insight.body}
+      </p>
+      {(insight.affects || insight.teamImpact) && (
+        <div className="flex gap-5">
+          {insight.affects && (
+            <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
+              Affects: {insight.affects}
+            </div>
+          )}
+          {insight.teamImpact && (
+            <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 shrink-0" />
+              Team impact: {insight.teamImpact}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const {
     results,
@@ -226,6 +330,15 @@ export default function Dashboard() {
                 tokenFailCount={tokenFailCount}
                 totalComponents={results.totalComponents}
                 figmaCount={figmaComponents.length}
+              />
+            )}
+
+            {(a11yScore !== null || tokenScore !== null) && (
+              <ImpactCallout
+                a11yScore={a11yScore}
+                tokenScore={tokenScore}
+                parityScore={parityReport?.overallScore ?? null}
+                coverageScore={parityReport?.coverageScore ?? null}
               />
             )}
 
