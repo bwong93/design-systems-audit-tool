@@ -71,6 +71,24 @@ export default function ParityView() {
     null,
   );
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
+  const [figmaSyncedAt, setFigmaSyncedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    db.figmaCache
+      .orderBy("fetchedAt")
+      .last()
+      .then((entry) => {
+        if (!entry) return;
+        setFigmaSyncedAt(
+          new Date(entry.fetchedAt).toLocaleString("en-US", {
+            month: "short",
+            day: "numeric",
+            hour: "numeric",
+            minute: "2-digit",
+          }),
+        );
+      });
+  }, [figmaComponents]);
 
   const handleActionNavigate = (
     item: import("../../services/priority-calculator").ActionItem,
@@ -164,6 +182,7 @@ export default function ParityView() {
             <p className="text-gray-400 mt-0.5 text-xs">
               {parityReport.totalCodeComponents} code components ·{" "}
               {parityReport.totalFigmaComponents} Figma components
+              {figmaSyncedAt && <span> · Figma synced {figmaSyncedAt}</span>}
             </p>
           </div>
           <div className="flex gap-3">
