@@ -72,3 +72,28 @@ export interface FigmaApiComponentSetsResponse {
     component_sets: FigmaApiComponentSet[];
   };
 }
+
+/** Raw component shape returned by GET /v1/files/:key/components */
+export interface FigmaApiComponent {
+  key: string;
+  name: string;
+  description: string;
+  node_id: string;
+  thumbnail_url?: string;
+  updated_at?: string;
+  containing_frame?: {
+    nodeId?: string;
+    name?: string;
+    pageId?: string;
+    pageName?: string;
+  };
+}
+
+/** Response shape from GET /v1/files/:key/components */
+export interface FigmaApiComponentsResponse {
+  status: number;
+  error: boolean;
+  meta: {
+    components: FigmaApiComponent[];
+  };
+}

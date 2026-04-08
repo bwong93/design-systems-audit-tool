@@ -2,6 +2,8 @@ import type {
   FigmaComponent,
   FigmaApiComponentSet,
   FigmaApiComponentSetsResponse,
+  FigmaApiComponent,
+  FigmaApiComponentsResponse,
 } from "../types/figma";
 import { db } from "../services/db";
 import { auditConfig } from "../audit.config";
@@ -24,8 +26,24 @@ export class FigmaClient {
       if (cached) return cached;
     }
 
-    const data = await this.fetchFromApi();
-    const components = this.parseComponents(data.meta.component_sets);
+    const [setsData, componentsData] = await Promise.all([
+      this.fetchFromApi(),
+      this.fetchStandaloneComponents(),
+    ]);
+
+    // Component sets — multi-variant components (e.g. Button, Tag)
+    const components = this.parseComponents(setsData.meta.component_sets);
+
+    // Collect node IDs already covered by a component set
+    const setNodeIds = new Set(components.map((c) => c.id));
+
+    // Standalone components — no variants, not a child of a component set
+    // Identified by: name contains no "=" (variant instances look like "Size=Large, Type=Primary")
+    // and not already represented by a component set
+    const standalones = componentsData.meta.components.filter(
+      (c) => !c.name.includes("=") && !setNodeIds.has(c.node_id),
+    );
+    components.push(...this.parseStandaloneComponents(standalones));
 
     // Enrich each component with properties parsed from variant children
     await this.enrichWithVariantProperties(components);
@@ -57,6 +75,36 @@ export class FigmaClient {
       fetchedAt: new Date().toISOString(),
       components,
     });
+  }
+
+  private async fetchStandaloneComponents(): Promise<FigmaApiComponentsResponse> {
+    try {
+      const res = await fetch(`${FIGMA_API}/files/${this.fileKey}/components`, {
+        headers: { "X-Figma-Token": this.token },
+      });
+      if (!res.ok)
+        return { status: res.status, error: true, meta: { components: [] } };
+      return res.json();
+    } catch {
+      return { status: 0, error: true, meta: { components: [] } };
+    }
+  }
+
+  private parseStandaloneComponents(
+    raw: FigmaApiComponent[],
+  ): FigmaComponent[] {
+    return raw.map((c) => ({
+      id: c.node_id,
+      key: c.key,
+      name: c.name,
+      codeName: this.extractCodeName(c.name, c.description ?? ""),
+      description: c.description ?? "",
+      documentation: c.description ?? "",
+      variants: [],
+      properties: [],
+      lastModified: c.updated_at ?? new Date().toISOString(),
+      thumbnailUrl: c.thumbnail_url,
+    }));
   }
 
   private async fetchFromApi(): Promise<FigmaApiComponentSetsResponse> {
