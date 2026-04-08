@@ -21,7 +21,7 @@ export class FileScanner {
   constructor(
     rootPath: string,
     componentPaths: string[],
-    excludePaths: string[] = []
+    excludePaths: string[] = [],
   ) {
     this.rootPath = rootPath;
     this.componentPaths = componentPaths;
@@ -99,17 +99,21 @@ export class FileScanner {
    * Analyze a component directory to find all related files
    */
   private async analyzeComponentDirectory(
-    directory: string
+    directory: string,
   ): Promise<ComponentFiles | null> {
     const files = fs.readdirSync(directory);
 
-    // Find the main component file (ComponentName.tsx, not .spec or .stories)
-    const mainFile = files.find(
+    // Prefer the .tsx file whose name matches the directory name (e.g. Button.tsx in Button/)
+    // Fall back to the first non-spec, non-stories .tsx if no name match exists
+    const dirName = path.basename(directory);
+    const tsxFiles = files.filter(
       (f) =>
         f.endsWith(".tsx") &&
         !f.endsWith(".spec.tsx") &&
-        !f.endsWith(".stories.tsx")
+        !f.endsWith(".stories.tsx"),
     );
+    const mainFile =
+      tsxFiles.find((f) => path.basename(f, ".tsx") === dirName) ?? tsxFiles[0];
 
     if (!mainFile) {
       return null;
@@ -127,7 +131,7 @@ export class FileScanner {
         f !== mainFile &&
         f !== specFile &&
         f !== storiesFile &&
-        f !== indexFile
+        f !== indexFile,
     );
 
     return {
