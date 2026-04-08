@@ -493,26 +493,36 @@ function DeltaSection() {
 
 // --- Score history chart ---
 
+const TIMEFRAMES = [
+  { label: "8 days", days: 8 },
+  { label: "30 days", days: 30 },
+  { label: "90 days", days: 90 },
+  { label: "All time", days: null },
+] as const;
+
+type TimeframeDays = (typeof TIMEFRAMES)[number]["days"];
+
 function ScoreHistoryChart() {
   const [history, setHistory] = useState<ScanHistoryEntry[]>([]);
+  const [timeframe, setTimeframe] = useState<TimeframeDays>(8);
 
   useEffect(() => {
     db.scanHistory
       .orderBy("timestamp")
       .reverse()
-      .limit(60)
+      .limit(365)
       .toArray()
       .then((rows) => {
-        // Keep only the last scan per calendar day
         const byDay = new Map<string, ScanHistoryEntry>();
         for (const row of rows) {
           const day = row.timestamp.slice(0, 10);
           if (!byDay.has(day)) byDay.set(day, row);
         }
-        const daily = Array.from(byDay.values()).reverse().slice(-8);
-        setHistory(daily);
+        const daily = Array.from(byDay.values()).reverse();
+        const sliced = timeframe === null ? daily : daily.slice(-timeframe);
+        setHistory(sliced);
       });
-  }, []);
+  }, [timeframe]);
 
   if (history.length < 2) return null;
 
@@ -551,7 +561,7 @@ function ScoreHistoryChart() {
         <div>
           <h2 className="font-semibold text-gray-900">Score history</h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            Last {history.length} days
+            {history.length} days shown
           </p>
         </div>
         <div className="flex items-center gap-4 text-sm">
@@ -573,6 +583,22 @@ function ScoreHistoryChart() {
               <Delta value={a11yDelta} />
             </div>
           </div>
+          <select
+            value={timeframe ?? "null"}
+            onChange={(e) => {
+              const val = e.target.value;
+              setTimeframe(
+                val === "null" ? null : (Number(val) as TimeframeDays),
+              );
+            }}
+            className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-600 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500"
+          >
+            {TIMEFRAMES.map((t) => (
+              <option key={String(t.days)} value={t.days ?? "null"}>
+                {t.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
       <ResponsiveContainer width="100%" height={180}>
