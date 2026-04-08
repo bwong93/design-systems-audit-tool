@@ -1,8 +1,11 @@
 import { useState, useEffect } from "react";
 import {
   GitCompare,
+  AlertTriangle,
+  CheckCircle,
   ChevronDown,
   ChevronUp,
+  XCircle,
   Undo2,
   ExternalLink,
   Info,
@@ -203,24 +206,32 @@ export default function ParityView() {
         {/* Summary row */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <StatCard
+            icon={<CheckCircle size={18} className="text-green-600" />}
             label="Aligned"
             value={parityReport.alignedCount}
+            bg="bg-green-50"
             tooltip="Components with a confirmed Figma match and a parity score of 90 or above. Name and props are consistent between Figma and code."
           />
           <StatCard
+            icon={<AlertTriangle size={18} className="text-amber-600" />}
             label="Have issues"
             value={parityReport.issuesCount}
+            bg="bg-amber-50"
             tooltip="Components matched to Figma but with a parity score below 90. Common causes: missing props in code, naming differences, or undocumented Figma properties."
           />
           <StatCard
+            icon={<XCircle size={18} className="text-red-600" />}
             label="Missing in Figma"
             value={missingInFigma.length}
+            bg="bg-red-50"
             tooltip="Code components with no confirmed Figma counterpart. These reduce the coverage score. Use the component row to link a Figma match, or mark as intentional."
           />
           {needsReviewCount > 0 && (
             <StatCard
+              icon={<AlertTriangle size={18} className="text-violet-600" />}
               label="Need review"
               value={needsReviewCount}
+              bg="bg-violet-50"
               tooltip="Components where the fuzzy matcher found a possible Figma match but isn't confident enough to auto-confirm it. Expand the row to confirm or dismiss the suggestion."
             />
           )}
@@ -744,36 +755,43 @@ function ScoreBadge({
 }
 
 function StatCard({
+  icon,
   label,
   value,
+  bg,
   tooltip,
 }: {
+  icon: React.ReactNode;
   label: string;
   value: number;
+  bg: string;
   tooltip?: string;
 }) {
   const [showTooltip, setShowTooltip] = useState(false);
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-      <div className="flex items-center gap-1 mt-1">
-        <p className="text-xs text-gray-500">{label}</p>
-        {tooltip && (
-          <div className="relative">
-            <button
-              onMouseEnter={() => setShowTooltip(true)}
-              onMouseLeave={() => setShowTooltip(false)}
-              className="text-gray-300 hover:text-gray-400 transition-colors"
-            >
-              <Info size={11} />
-            </button>
-            {showTooltip && (
-              <div className="absolute top-5 left-0 z-10 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-lg">
-                {tooltip}
-              </div>
-            )}
-          </div>
-        )}
+    <div className="bg-white rounded-lg border border-gray-200 p-4 flex items-center gap-3">
+      <div className={`${bg} p-2 rounded-lg shrink-0`}>{icon}</div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xl font-bold text-gray-900">{value}</p>
+        <div className="flex items-center gap-1">
+          <p className="text-xs text-gray-500">{label}</p>
+          {tooltip && (
+            <div className="relative">
+              <button
+                onMouseEnter={() => setShowTooltip(true)}
+                onMouseLeave={() => setShowTooltip(false)}
+                className="text-gray-300 hover:text-gray-400 transition-colors"
+              >
+                <Info size={11} />
+              </button>
+              {showTooltip && (
+                <div className="absolute top-5 left-0 z-10 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 shadow-lg">
+                  {tooltip}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
