@@ -450,12 +450,15 @@ function HealthScoreCard({
             <button
               onMouseEnter={() => setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
+              onFocus={() => setShowTooltip(true)}
+              onBlur={() => setShowTooltip(false)}
+              aria-label={`Why ${label} matters`}
               className="opacity-40 hover:opacity-70 transition-opacity"
             >
               <Info size={13} />
             </button>
             {showTooltip && (
-              <div className="absolute top-full mt-2 right-0 z-10 w-80 bg-gray-900 text-white text-xs rounded-lg p-4 shadow-lg text-left font-normal normal-case tracking-normal space-y-3">
+              <div className="absolute top-full mt-2 right-0 z-10 w-72 bg-gray-900 text-white text-xs rounded-lg p-4 shadow-lg text-left font-normal normal-case tracking-normal space-y-3">
                 <p className="text-gray-400">{tooltipContent.measures}</p>
                 <p className="text-gray-200 leading-relaxed">
                   {tooltipContent.why}
