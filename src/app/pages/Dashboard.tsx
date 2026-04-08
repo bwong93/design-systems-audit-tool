@@ -5,6 +5,7 @@ import {
   Package,
   Download,
   ArrowRight,
+  Info,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
@@ -283,12 +284,30 @@ export default function Dashboard() {
                     score={parityReport.overallScore}
                     detail={`${parityReport.alignedCount} aligned · ${parityReport.issuesCount} with issues`}
                     to="/parity"
+                    tooltipContent={{
+                      measures:
+                        "Alignment between Figma designs and code implementations",
+                      why: "When design and code drift apart, engineers spend time reverse-engineering intent rather than building. Consistent parity accelerates delivery, reduces QA cycles, and ensures your product looks the way it was designed.",
+                      userImpact:
+                        "A consistent product that looks and behaves as intended across every surface",
+                      teamImpact:
+                        "Faster delivery, fewer revision cycles, clearer design-to-dev handoffs",
+                    }}
                   />
                   <HealthScoreCard
                     label="Coverage"
                     score={parityReport.coverageScore}
                     detail={`${results.totalComponents - parityReport.missingInFigma.length} of ${results.totalComponents} matched to Figma`}
                     to="/parity"
+                    tooltipContent={{
+                      measures:
+                        "How much of your codebase has a confirmed Figma counterpart",
+                      why: "Components without Figma documentation exist outside the design system. When coverage is low, designers and engineers are working from different sources of truth — leading to inconsistent decisions and slower iteration.",
+                      userImpact:
+                        "More consistent UI decisions across the product as design and code stay in sync",
+                      teamImpact:
+                        "A single source of truth reduces ambiguity and makes onboarding faster",
+                    }}
                   />
                 </>
               ) : (
@@ -309,6 +328,15 @@ export default function Dashboard() {
                   score={a11yScore}
                   detail={`${results.components.length - a11yFailCount} of ${results.components.length} passing all checks`}
                   to="/accessibility"
+                  tooltipContent={{
+                    measures:
+                      "WCAG 2.2 AA compliance across your component library",
+                    why: "An estimated 1 in 4 adults lives with some form of disability. Accessibility isn't just a compliance requirement — it's a measure of how well your product serves your entire audience. Issues caught here are far cheaper to fix than those found post-launch.",
+                    userImpact:
+                      "A product that works for keyboard users, screen reader users, and users with low vision",
+                    teamImpact:
+                      "Reduces legal and compliance risk; fixes made here apply across every product using the system",
+                  }}
                 />
               ) : (
                 <HealthScoreCardEmpty label="A11y Score" reason="Run a scan" />
@@ -319,6 +347,15 @@ export default function Dashboard() {
                   score={tokenScore}
                   detail={`${results.components.length - tokenFailCount} of ${results.components.length} using tokens`}
                   to="/tokens"
+                  tooltipContent={{
+                    measures:
+                      "How much of your component library uses design tokens instead of hardcoded color values",
+                    why: "Hardcoded colors are design debt. Every component that bypasses tokens adds to the manual work required when the brand evolves — whether that's a refresh, a rebrand, or adding dark mode. Token adoption is what makes a design system scalable.",
+                    userImpact:
+                      "A visually consistent product that can adopt theming (e.g. dark mode) without gaps",
+                    teamImpact:
+                      "A rebrand becomes a configuration change, not a multi-week engineering project",
+                  }}
                 />
               ) : (
                 <HealthScoreCardEmpty label="Token Score" reason="Run a scan" />
@@ -378,25 +415,80 @@ export default function Dashboard() {
 
 // --- Health score card ---
 
+type ScoreTooltip = {
+  measures: string;
+  why: string;
+  userImpact: string;
+  teamImpact: string;
+};
+
 function HealthScoreCard({
   label,
   score,
   detail,
   to,
+  tooltipContent,
 }: {
   label: string;
   score: number;
   detail: string;
   to: string;
+  tooltipContent?: ScoreTooltip;
 }) {
   const grade = getGrade(score);
   const colorClass = getGradeColor(grade);
+  const [showTooltip, setShowTooltip] = useState(false);
 
   return (
-    <div className={`rounded-xl border p-6 ${colorClass}`}>
-      <p className="text-xs font-semibold uppercase tracking-wide opacity-60 mb-4">
-        {label}
-      </p>
+    <div className={`relative rounded-xl border p-6 ${colorClass}`}>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-xs font-semibold uppercase tracking-wide opacity-60">
+          {label}
+        </p>
+        {tooltipContent && (
+          <div className="relative">
+            <button
+              onMouseEnter={() => setShowTooltip(true)}
+              onMouseLeave={() => setShowTooltip(false)}
+              className="opacity-40 hover:opacity-70 transition-opacity"
+            >
+              <Info size={13} />
+            </button>
+            {showTooltip && (
+              <div className="absolute top-full mt-2 right-0 z-10 w-80 bg-gray-900 text-white text-xs rounded-lg p-4 shadow-lg text-left font-normal normal-case tracking-normal space-y-3">
+                <p className="text-gray-400">{tooltipContent.measures}</p>
+                <p className="text-gray-200 leading-relaxed">
+                  {tooltipContent.why}
+                </p>
+                <div className="border-t border-gray-700 pt-3 space-y-2">
+                  <div className="flex items-start gap-2">
+                    <span className="text-indigo-400 shrink-0 mt-0.5">↗</span>
+                    <p>
+                      <span className="text-white font-medium">
+                        User impact:
+                      </span>{" "}
+                      <span className="text-gray-300">
+                        {tooltipContent.userImpact}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <span className="text-indigo-400 shrink-0 mt-0.5">↗</span>
+                    <p>
+                      <span className="text-white font-medium">
+                        Team impact:
+                      </span>{" "}
+                      <span className="text-gray-300">
+                        {tooltipContent.teamImpact}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
       <p className="text-5xl font-bold leading-none">{score}</p>
       <p className="text-base font-semibold mt-2">{grade}</p>
       <p className="text-xs mt-3 opacity-60">{detail}</p>
