@@ -16,11 +16,13 @@ export const auditConfig = {
     fileKey: import.meta.env.VITE_FIGMA_FILE_KEY || "",
     accessToken: import.meta.env.VITE_FIGMA_PERSONAL_ACCESS_TOKEN || "",
     cacheDuration: 60 * 60 * 1000, // 1 hour in milliseconds
-    /**
-     * Figma variant properties to exclude from code comparison.
-     * "state" represents interaction states (hover, pressed) handled via CSS, not props.
-     */
     excludedProperties: ["state"],
+    /**
+     * Figma component name prefixes to exclude from parity checks.
+     * Components named "Primitive / X" are design-only building blocks
+     * with no React counterpart — they should not appear in "In Figma, not in code".
+     */
+    excludedFigmaPrefixes: ["Primitive"],
   },
   scoring: {
     weights: {

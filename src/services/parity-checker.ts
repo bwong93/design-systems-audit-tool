@@ -1,5 +1,6 @@
 import type { ComponentMetadata } from "../types/component";
 import type { FigmaComponent } from "../types/figma";
+import { auditConfig } from "../audit.config";
 import type { DriftException } from "../types/figma";
 import type {
   ParityReport,
@@ -118,12 +119,18 @@ export async function runParityCheck(
   }
 
   // Components in Figma that weren't matched to any code component
+  const excludedPrefixes = auditConfig.figma.excludedFigmaPrefixes.map((p) =>
+    p.toLowerCase(),
+  );
   const codeNames = new Set(codeComponents.map((c) => c.name.toLowerCase()));
   const missingInCode = figmaComponents
     .filter(
       (f) =>
         !matchedFigmaNames.has(f.codeName.toLowerCase()) &&
-        !figmaOnlySet.has(f.codeName.toLowerCase()),
+        !figmaOnlySet.has(f.codeName.toLowerCase()) &&
+        !excludedPrefixes.some((prefix) =>
+          f.name.toLowerCase().startsWith(prefix),
+        ),
     )
     .map((f) => ({
       codeName: f.codeName,
