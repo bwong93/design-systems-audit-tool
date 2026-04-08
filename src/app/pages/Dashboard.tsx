@@ -500,9 +500,18 @@ function ScoreHistoryChart() {
     db.scanHistory
       .orderBy("timestamp")
       .reverse()
-      .limit(8)
+      .limit(60)
       .toArray()
-      .then((rows) => setHistory(rows.reverse()));
+      .then((rows) => {
+        // Keep only the last scan per calendar day
+        const byDay = new Map<string, ScanHistoryEntry>();
+        for (const row of rows) {
+          const day = row.timestamp.slice(0, 10);
+          if (!byDay.has(day)) byDay.set(day, row);
+        }
+        const daily = Array.from(byDay.values()).reverse().slice(-8);
+        setHistory(daily);
+      });
   }, []);
 
   if (history.length < 2) return null;
@@ -542,7 +551,7 @@ function ScoreHistoryChart() {
         <div>
           <h2 className="font-semibold text-gray-900">Score history</h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            Last {history.length} scans
+            Last {history.length} days
           </p>
         </div>
         <div className="flex items-center gap-4 text-sm">
