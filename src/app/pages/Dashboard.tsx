@@ -448,10 +448,14 @@ function HealthScoreCard({
         {tooltipContent && (
           <div className="relative">
             <button
+              type="button"
               onMouseEnter={() => setShowTooltip(true)}
               onMouseLeave={() => setShowTooltip(false)}
               onFocus={() => setShowTooltip(true)}
               onBlur={() => setShowTooltip(false)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setShowTooltip(false);
+              }}
               aria-label={`Why ${label} matters`}
               className="opacity-40 hover:opacity-70 transition-opacity"
             >
