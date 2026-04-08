@@ -26,3 +26,6 @@ test/coverage/
 
 # Vite
 .vite/
+
+# Git worktrees
+.worktrees/
