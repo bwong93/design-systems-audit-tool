@@ -2,6 +2,7 @@ import { glob } from "glob";
 import * as path from "path";
 import * as fs from "fs";
 import type { ScanError } from "../types/component";
+import { auditConfig } from "../audit.config";
 
 export interface ComponentFiles {
   name: string;
@@ -48,6 +49,12 @@ export class FileScanner {
           try {
             const componentFiles = await this.analyzeComponentDirectory(dir);
             if (componentFiles) {
+              if (
+                auditConfig.nucleus.requireStories &&
+                !componentFiles.storiesFile
+              ) {
+                continue;
+              }
               components.push(componentFiles);
             }
           } catch (error) {

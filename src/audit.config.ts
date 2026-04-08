@@ -5,6 +5,7 @@ export const auditConfig = {
     componentPaths: ["src/components", "src/patterns"],
     tokenPath: "src/theme",
     excludePaths: ["node_modules", "dist", "test/coverage", ".storybook"],
+    requireStories: true,
     /** GitHub repo URL — used to generate source file links */
     githubUrl: "https://github.com/meetearnest/nucleus",
     /** Branch to link to on GitHub */
