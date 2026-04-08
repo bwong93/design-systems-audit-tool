@@ -327,28 +327,39 @@ function HealthNarrative({
   totalComponents: number;
   figmaCount: number;
 }) {
-  const stats = [
-    { value: totalComponents, label: "Code components" },
-    { value: figmaCount, label: "In Figma" },
-    { value: parityReport.alignedCount, label: "Aligned" },
-    { value: parityReport.issuesCount, label: "With issues" },
-    { value: parityReport.missingInFigma.length, label: "Missing in Figma" },
-    { value: a11yFailCount, label: "A11y gaps" },
-    { value: tokenFailCount, label: "Hardcoded colors" },
-  ];
+  const parts: string[] = [];
+
+  parts.push(
+    `${totalComponents} code components · ${figmaCount > 0 ? figmaCount + " in Figma" : "no Figma data"}`,
+  );
+  if (parityReport.alignedCount > 0) {
+    parts.push(`${parityReport.alignedCount} aligned`);
+  }
+  if (parityReport.issuesCount > 0) {
+    parts.push(
+      `${parityReport.issuesCount} with issue${parityReport.issuesCount > 1 ? "s" : ""}`,
+    );
+  }
+  if (parityReport.missingInFigma.length > 0) {
+    parts.push(`${parityReport.missingInFigma.length} missing in Figma`);
+  }
+  if (a11yFailCount > 0) {
+    parts.push(`${a11yFailCount} with a11y gap${a11yFailCount > 1 ? "s" : ""}`);
+  }
+  if (tokenFailCount > 0) {
+    parts.push(
+      `${tokenFailCount} with hardcoded color${tokenFailCount > 1 ? "s" : ""}`,
+    );
+  }
 
   return (
-    <div className="grid grid-cols-4 gap-3 mt-3 mb-3">
-      {stats.map(({ value, label }) => (
-        <div
-          key={label}
-          className="bg-white rounded-lg border border-gray-200 px-4 py-3"
-        >
-          <p className="text-2xl font-bold text-gray-900">{value}</p>
-          <p className="text-xs text-gray-500 mt-1">{label}</p>
-        </div>
-      ))}
-    </div>
+    <p className="text-sm text-gray-400 mt-2 mb-2">
+      {parts.join(" · ")} · Last scanned{" "}
+      {new Date(parityReport.timestamp).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      })}
+    </p>
   );
 }
 
