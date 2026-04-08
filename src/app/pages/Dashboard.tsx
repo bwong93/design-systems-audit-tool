@@ -60,14 +60,6 @@ function getImpactInsight(scores: {
       teamImpact: "Compliance & legal risk",
     };
   }
-  if (token !== null && token < 75) {
-    return {
-      headline: "Hardcoded colors are creating future rework",
-      body: "Every component that bypasses design tokens adds to the manual effort required when the brand evolves. At your current adoption rate, a rebrand or theme change would require hands-on edits across a significant portion of your component library.",
-      affects: "All users (theming)",
-      teamImpact: "Rebrand & maintenance cost",
-    };
-  }
   if (parity !== null && parity < 75) {
     return {
       headline: "Design-to-code drift is slowing delivery",
@@ -84,9 +76,17 @@ function getImpactInsight(scores: {
       teamImpact: "Onboarding & handoff clarity",
     };
   }
+  if (token !== null && token < 75) {
+    return {
+      headline: "Hardcoded colors are creating future rework",
+      body: "Every component that bypasses design tokens adds to the manual effort required when the brand evolves. At your current adoption rate, a rebrand or theme change would require hands-on edits across a significant portion of your component library.",
+      affects: "All users (theming)",
+      teamImpact: "Rebrand & maintenance cost",
+    };
+  }
   return {
     headline: "Your design system is in strong health",
-    body: "All four metrics are tracking well. This means faster delivery, lower maintenance costs, and a product that's consistent and accessible for every user. Keep the momentum going.",
+    body: "All tracked metrics are looking good. This means faster delivery, lower maintenance costs, and a product that's consistent and accessible for every user. Keep the momentum going.",
     affects: "",
     teamImpact: "",
   };
@@ -111,7 +111,10 @@ function ImpactCallout({
   });
 
   return (
-    <div className="bg-white border border-gray-200 border-l-[3px] border-l-indigo-500 rounded-lg px-4 py-3 mt-3 mb-1">
+    <div
+      className="bg-white border border-gray-200 rounded-lg px-4 py-3 mt-3 mb-1"
+      style={{ borderLeftColor: "#6366f1", borderLeftWidth: 3 }}
+    >
       <p className="text-[10px] font-semibold uppercase tracking-widest text-indigo-500 mb-1.5">
         Why this matters
       </p>
