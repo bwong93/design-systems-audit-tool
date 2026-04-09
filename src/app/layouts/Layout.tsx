@@ -7,6 +7,7 @@ import {
   Settings,
   RefreshCw,
   Loader2,
+  TrendingUp,
 } from "lucide-react";
 import ScanToast from "../components/ScanToast";
 import { useAuditStore } from "../../stores/audit-store";
@@ -41,6 +42,11 @@ export default function Layout() {
               label="Accessibility"
             />
             <NavLink to="/tokens" icon={<Palette size={20} />} label="Tokens" />
+            <NavLink
+              to="/impact"
+              icon={<TrendingUp size={20} />}
+              label="Impact"
+            />
           </nav>
 
           {/* Footer actions */}

@@ -155,6 +155,8 @@ export default function Dashboard() {
     error,
     startScan,
     parityReport,
+    impactScore,
+    usageData,
   } = useAuditStore();
   const { nucleusPath } = useOnboardingStore();
 
@@ -276,7 +278,7 @@ export default function Dashboard() {
             )}
 
             {/* Health scores */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-3">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-3">
               {parityReport ? (
                 <>
                   <HealthScoreCard
@@ -359,6 +361,27 @@ export default function Dashboard() {
                 />
               ) : (
                 <HealthScoreCardEmpty label="Token Score" reason="Run a scan" />
+              )}
+              {impactScore !== null ? (
+                <HealthScoreCard
+                  label="Impact Score"
+                  score={impactScore}
+                  detail={`${usageData?.components.length ?? 0} components tracked`}
+                  to="/impact"
+                  tooltipContent={{
+                    measures: "Reach × quality across your component fleet",
+                    why: "High-impact components are both widely used and well-built. A low impact score means either low adoption or quality issues in commonly-used components — limiting the design system's value to your product teams.",
+                    userImpact:
+                      "A design system that's both adopted and trustworthy across every consuming product",
+                    teamImpact:
+                      "Focuses improvement effort where it matters most — high-reach components with quality gaps",
+                  }}
+                />
+              ) : (
+                <HealthScoreCardEmpty
+                  label="Impact Score"
+                  reason="Import usage data"
+                />
               )}
             </div>
 

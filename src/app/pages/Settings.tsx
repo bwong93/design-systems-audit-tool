@@ -1,5 +1,6 @@
 import { Info } from "lucide-react";
 import { useOnboardingStore } from "../../stores/onboarding-store";
+import UsageImport from "../components/UsageImport";
 
 export default function Settings() {
   const { figmaToken, figmaFileKey, nucleusPath, resetOnboarding } =
@@ -27,6 +28,16 @@ export default function Settings() {
           >
             Reset onboarding
           </button>
+        </section>
+
+        {/* Usage Data */}
+        <section className="bg-white rounded-lg border border-gray-200 p-6">
+          <h2 className="font-semibold text-gray-900 mb-1">Usage Data</h2>
+          <p className="text-sm text-gray-500 mb-4">
+            Import a CSV with component usage data from your consuming repos to
+            enable Impact Score tracking.
+          </p>
+          <UsageImport />
         </section>
 
         {/* Code Connect notice */}

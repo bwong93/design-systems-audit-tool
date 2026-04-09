@@ -7,6 +7,7 @@ import ParityView from "./app/pages/ParityView";
 import Accessibility from "./app/pages/Accessibility";
 import Tokens from "./app/pages/Tokens";
 import Settings from "./app/pages/Settings";
+import Impact from "./app/pages/Impact";
 import { useOnboardingStore } from "./stores/onboarding-store";
 import { useAuditStore } from "./stores/audit-store";
 
@@ -36,6 +37,7 @@ function App() {
           <Route path="parity" element={<ParityView />} />
           <Route path="accessibility" element={<Accessibility />} />
           <Route path="tokens" element={<Tokens />} />
+          <Route path="impact" element={<Impact />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>
