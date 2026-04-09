@@ -126,12 +126,16 @@ export const useAuditStore = create<AuditStore>((set) => ({
             componentStatuses[comp.componentName] = {
               parityStatus: comp.status,
               a11yScore: Math.round((a11yPassed / A11Y_KEYS.length) * 100),
+              usesTokens: codeComp
+                ? codeComp.hardcodedColors.length === 0
+                : true,
             };
           }
           for (const name of parityReport.missingInFigma) {
             componentStatuses[name] = {
               parityStatus: "missing-in-figma",
               a11yScore: 0,
+              usesTokens: true,
             };
           }
 

@@ -29,6 +29,7 @@ export interface FigmaOnlyDecision {
 export interface ComponentStatus {
   parityStatus: string;
   a11yScore: number;
+  usesTokens: boolean;
 }
 
 /** Lightweight score summary saved after each scan for trend tracking */
