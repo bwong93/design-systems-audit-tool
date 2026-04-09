@@ -1,7 +1,7 @@
 export const auditConfig = {
   nucleus: {
     rootPath:
-      import.meta.env.VITE_NUCLEUS_ROOT_PATH || "/Users/bentley/Dev/nucleus",
+      import.meta.env?.VITE_NUCLEUS_ROOT_PATH || "/Users/bentley/Dev/nucleus",
     componentPaths: ["src/components", "src/patterns"],
     tokenPath: "src/theme",
     excludePaths: ["node_modules", "dist", "test/coverage", ".storybook"],
@@ -11,11 +11,12 @@ export const auditConfig = {
     /** Branch to link to on GitHub */
     githubBranch: "main",
     /** Storybook base URL — runs locally via `yarn storybook` in Nucleus */
-    storybookUrl: import.meta.env.VITE_STORYBOOK_URL || "http://localhost:6006",
+    storybookUrl:
+      import.meta.env?.VITE_STORYBOOK_URL || "http://localhost:6006",
   },
   figma: {
-    fileKey: import.meta.env.VITE_FIGMA_FILE_KEY || "",
-    accessToken: import.meta.env.VITE_FIGMA_PERSONAL_ACCESS_TOKEN || "",
+    fileKey: import.meta.env?.VITE_FIGMA_FILE_KEY || "",
+    accessToken: import.meta.env?.VITE_FIGMA_PERSONAL_ACCESS_TOKEN || "",
     cacheDuration: 60 * 60 * 1000, // 1 hour in milliseconds
     excludedProperties: ["state"],
     /**
