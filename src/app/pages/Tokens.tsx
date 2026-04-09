@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Palette,
   CheckCircle,
@@ -15,10 +15,28 @@ import {
   getGradeDot,
 } from "../../services/score-calculator";
 import { githubLink, storybookLink } from "../../utils/links";
+import { useSearchParams } from "react-router-dom";
 import type { ComponentMetadata } from "../../types/component";
 
 export default function Tokens() {
   const { results } = useAuditStore();
+
+  const [searchParams] = useSearchParams();
+  const [highlightedComponent, setHighlightedComponent] = useState<
+    string | null
+  >(null);
+
+  useEffect(() => {
+    const highlight = searchParams.get("highlight");
+    if (!highlight) return;
+    setHighlightedComponent(highlight);
+    setTimeout(() => {
+      document
+        .getElementById(`component-row-${highlight}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+    setTimeout(() => setHighlightedComponent(null), 1500);
+  }, [searchParams]);
 
   if (!results) {
     return (
@@ -111,7 +129,11 @@ export default function Tokens() {
                 (a, b) => b.hardcodedColors.length - a.hardcodedColors.length,
               )
               .map((component) => (
-                <TokenComponentRow key={component.name} component={component} />
+                <TokenComponentRow
+                  key={component.name}
+                  component={component}
+                  highlighted={highlightedComponent === component.name}
+                />
               ))}
           </div>
         </div>
@@ -206,13 +228,24 @@ function TokenScoreBadge({
 
 // --- Component row ---
 
-function TokenComponentRow({ component }: { component: ComponentMetadata }) {
+function TokenComponentRow({
+  component,
+  highlighted,
+}: {
+  component: ComponentMetadata;
+  highlighted: boolean;
+}) {
   const [expanded, setExpanded] = useState(false);
   const hasPassing = component.hardcodedColors.length === 0;
   const dotClass = getGradeDot(hasPassing ? "Excellent" : "Critical");
 
   return (
-    <div className="hover:bg-gray-50 transition-colors">
+    <div
+      id={`component-row-${component.name}`}
+      className={`hover:bg-gray-50 transition-colors ${
+        highlighted ? "ring-2 ring-inset ring-indigo-400 bg-indigo-50" : ""
+      }`}
+    >
       <button
         onClick={() => !hasPassing && setExpanded(!expanded)}
         className={`w-full px-6 py-4 flex items-center justify-between text-left ${hasPassing ? "cursor-default" : ""}`}
