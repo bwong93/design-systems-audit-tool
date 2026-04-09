@@ -1,6 +1,7 @@
 import Dexie, { type Table } from "dexie";
 import type { FigmaCache, DriftException } from "../types/figma";
 import type { ScanResult } from "../types/component";
+import type { UsageImport } from "../types/usage";
 
 export interface ComponentMapping {
   id?: number;
@@ -64,6 +65,7 @@ export class AuditDatabase extends Dexie {
   visualFlags!: Table<VisualFlag>;
   figmaOnlyDecisions!: Table<FigmaOnlyDecision>;
   scanHistory!: Table<ScanHistoryEntry>;
+  usageImport!: Table<UsageImport>;
 
   constructor() {
     super("ds-audit-tool");
@@ -133,6 +135,19 @@ export class AuditDatabase extends Dexie {
       visualFlags: "++id, componentName, createdAt",
       figmaOnlyDecisions: "++id, figmaCodeName",
       scanHistory: "++id, timestamp",
+    });
+
+    // Version 8 adds usage import table for component impact scoring
+    this.version(8).stores({
+      figmaCache: "++id, fileKey, fetchedAt",
+      driftExceptions: "++id, componentName, category, propertyName, createdAt",
+      scanResults: "++id, timestamp",
+      componentMappings: "++id, codeComponentName, figmaComponentName",
+      noMatchDecisions: "++id, codeComponentName, reason",
+      visualFlags: "++id, componentName, createdAt",
+      figmaOnlyDecisions: "++id, figmaCodeName",
+      scanHistory: "++id, timestamp",
+      usageImport: "++id, importedAt",
     });
   }
 }
