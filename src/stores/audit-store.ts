@@ -274,16 +274,20 @@ export const useAuditStore = create<AuditStore>((set, get) => ({
     ];
     const { valid, warnings } = validateAgainstComponents(parsed, knownNames);
 
-    const totalRepos = new Set(valid.flatMap((c) => c.repos.map((r) => r.name)))
-      .size;
+    const totalRepos = Math.max(
+      1,
+      new Set(valid.flatMap((c) => c.repos.map((r) => r.name))).size,
+    );
     const usageImport: UsageImport = {
       importedAt: new Date().toISOString(),
       totalRepos,
       components: valid,
     };
 
-    await db.usageImports.clear();
-    await db.usageImports.add(usageImport);
+    await db.transaction("rw", db.usageImports, async () => {
+      await db.usageImports.clear();
+      await db.usageImports.add(usageImport);
+    });
 
     const latestHistory = await db.scanHistory.orderBy("timestamp").last();
     const componentStatuses = latestHistory?.componentStatuses ?? {};
