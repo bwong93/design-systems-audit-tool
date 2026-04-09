@@ -65,7 +65,7 @@ export class AuditDatabase extends Dexie {
   visualFlags!: Table<VisualFlag>;
   figmaOnlyDecisions!: Table<FigmaOnlyDecision>;
   scanHistory!: Table<ScanHistoryEntry>;
-  usageImport!: Table<UsageImport>;
+  usageImports!: Table<UsageImport>;
 
   constructor() {
     super("ds-audit-tool");
@@ -147,7 +147,7 @@ export class AuditDatabase extends Dexie {
       visualFlags: "++id, componentName, createdAt",
       figmaOnlyDecisions: "++id, figmaCodeName",
       scanHistory: "++id, timestamp",
-      usageImport: "++id, importedAt",
+      usageImports: "++id, importedAt",
     });
   }
 }

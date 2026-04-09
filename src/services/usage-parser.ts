@@ -75,7 +75,7 @@ export function validateAgainstComponents(
     );
 
     if (fuzzy) {
-      valid.push(entry);
+      valid.push({ ...entry, component: fuzzy.label });
       warnings.push(
         `Could not exactly match '${entry.component}' — did you mean '${fuzzy.label}'?`,
       );
