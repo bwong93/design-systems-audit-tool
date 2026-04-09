@@ -162,8 +162,14 @@ function ImpactScoreBadge({
           Impact Score
         </p>
         <button
+          aria-label="How the impact score is calculated"
           onMouseEnter={() => setShowTooltip(true)}
           onMouseLeave={() => setShowTooltip(false)}
+          onFocus={() => setShowTooltip(true)}
+          onBlur={() => setShowTooltip(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setShowTooltip(false);
+          }}
           className="opacity-50 hover:opacity-80 transition-opacity"
         >
           <Info size={11} />
@@ -210,6 +216,8 @@ function ImpactComponentRow({
     <div className="hover:bg-gray-50 transition-colors">
       <button
         onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
+        aria-label={`${expanded ? "Collapse" : "Expand"} ${component.componentName}`}
         className="w-full px-6 py-4 grid grid-cols-[2fr_2fr_1fr_1fr_1fr] gap-4 items-center text-left"
       >
         <div className="flex items-center gap-2">
@@ -259,23 +267,29 @@ function ImpactComponentRow({
         </div>
       </button>
 
-      {expanded && component.repoList.length > 0 && (
+      {expanded && (
         <div className="px-6 pb-4 pl-8">
-          <div className="bg-gray-50 border border-gray-100 rounded-lg divide-y divide-gray-100">
-            {component.repoList.map((repo) => (
-              <div
-                key={repo.name}
-                className="flex items-center justify-between px-4 py-2"
-              >
-                <span className="text-xs font-medium text-gray-700">
-                  {repo.name}
-                </span>
-                <span className="text-xs text-gray-400">
-                  {repo.instances} instance{repo.instances !== 1 ? "s" : ""}
-                </span>
-              </div>
-            ))}
-          </div>
+          {component.repoList.length > 0 ? (
+            <div className="bg-gray-50 border border-gray-100 rounded-lg divide-y divide-gray-100">
+              {component.repoList.map((repo) => (
+                <div
+                  key={repo.name}
+                  className="flex items-center justify-between px-4 py-2"
+                >
+                  <span className="text-xs font-medium text-gray-700">
+                    {repo.name}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    {repo.instances} instance{repo.instances !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400">
+              No repo breakdown available.
+            </p>
+          )}
         </div>
       )}
     </div>

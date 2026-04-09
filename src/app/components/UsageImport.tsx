@@ -61,8 +61,8 @@ export default function UsageImport() {
               className="text-amber-500 mt-0.5 shrink-0"
             />
             <div className="space-y-1">
-              {warnings.map((w, i) => (
-                <p key={i} className="text-xs text-amber-700">
+              {warnings.map((w) => (
+                <p key={w} className="text-xs text-amber-700">
                   {w}
                 </p>
               ))}
@@ -103,6 +103,9 @@ export default function UsageImport() {
   return (
     <div className="space-y-3">
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="Upload CSV file — click or drag and drop"
         onDragOver={(e) => {
           e.preventDefault();
           setIsDragging(true);
@@ -110,6 +113,12 @@ export default function UsageImport() {
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         onClick={() => !isLoading && fileInputRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            fileInputRef.current?.click();
+          }
+        }}
         className={`border-2 border-dashed rounded-lg px-6 py-10 flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors ${
           isDragging
             ? "border-indigo-400 bg-indigo-50"
@@ -147,8 +156,8 @@ export default function UsageImport() {
         <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
           <AlertTriangle size={14} className="text-amber-500 mt-0.5 shrink-0" />
           <div className="space-y-1">
-            {warnings.map((w, i) => (
-              <p key={i} className="text-xs text-amber-700">
+            {warnings.map((w) => (
+              <p key={w} className="text-xs text-amber-700">
                 {w}
               </p>
             ))}
