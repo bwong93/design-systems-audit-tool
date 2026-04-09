@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Eye,
   CheckCircle,
@@ -16,6 +16,7 @@ import {
   averageScores,
 } from "../../services/score-calculator";
 import { githubLink, storybookLink } from "../../utils/links";
+import { useSearchParams } from "react-router-dom";
 import type { ComponentMetadata } from "../../types/component";
 
 // --- Check definitions ---
@@ -101,6 +102,23 @@ function componentA11yScore(c: ComponentMetadata): number {
 
 export default function Accessibility() {
   const { results } = useAuditStore();
+
+  const [searchParams] = useSearchParams();
+  const [highlightedComponent, setHighlightedComponent] = useState<
+    string | null
+  >(null);
+
+  useEffect(() => {
+    const highlight = searchParams.get("highlight");
+    if (!highlight) return;
+    setHighlightedComponent(highlight);
+    setTimeout(() => {
+      document
+        .getElementById(`component-row-${highlight}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+    setTimeout(() => setHighlightedComponent(null), 1500);
+  }, [searchParams]);
 
   if (!results) {
     return (
@@ -195,7 +213,11 @@ export default function Accessibility() {
             {[...components]
               .sort((a, b) => componentA11yScore(a) - componentA11yScore(b))
               .map((component) => (
-                <A11yComponentRow key={component.name} component={component} />
+                <A11yComponentRow
+                  key={component.name}
+                  component={component}
+                  highlighted={highlightedComponent === component.name}
+                />
               ))}
           </div>
         </div>
@@ -342,7 +364,13 @@ function SummaryCard({
 
 // --- Component row ---
 
-function A11yComponentRow({ component }: { component: ComponentMetadata }) {
+function A11yComponentRow({
+  component,
+  highlighted,
+}: {
+  component: ComponentMetadata;
+  highlighted: boolean;
+}) {
   const [expanded, setExpanded] = useState(false);
   const score = componentA11yScore(component);
   const grade = getGrade(score);
@@ -350,7 +378,12 @@ function A11yComponentRow({ component }: { component: ComponentMetadata }) {
   const passingChecks = CHECKS.filter((c) => component[c.key]);
 
   return (
-    <div className="hover:bg-gray-50 transition-colors">
+    <div
+      id={`component-row-${component.name}`}
+      className={`hover:bg-gray-50 transition-colors ${
+        highlighted ? "ring-2 ring-inset ring-indigo-400 bg-indigo-50" : ""
+      }`}
+    >
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full px-6 py-4 flex items-center justify-between text-left"
