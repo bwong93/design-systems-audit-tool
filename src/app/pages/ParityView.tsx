@@ -11,6 +11,7 @@ import {
   Info,
   ListTodo,
 } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
 import { figmaLink, githubLink, storybookLink } from "../../utils/links";
 import { useAuditStore } from "../../stores/audit-store";
 import { useOnboardingStore } from "../../stores/onboarding-store";
@@ -70,6 +71,10 @@ export default function ParityView() {
   const [autoExpandComponent, setAutoExpandComponent] = useState<string | null>(
     null,
   );
+  const [searchParams] = useSearchParams();
+  const [highlightedComponent, setHighlightedComponent] = useState<
+    string | null
+  >(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [figmaSyncedAt, setFigmaSyncedAt] = useState<string | null>(null);
 
@@ -89,6 +94,19 @@ export default function ParityView() {
         );
       });
   }, [figmaComponents]);
+
+  useEffect(() => {
+    const highlight = searchParams.get("highlight");
+    if (!highlight) return;
+    setAutoExpandComponent(highlight);
+    setHighlightedComponent(highlight);
+    setTimeout(() => {
+      document
+        .getElementById(`component-row-${highlight}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+    setTimeout(() => setHighlightedComponent(null), 1500);
+  }, [searchParams]);
 
   const handleActionNavigate = (
     item: import("../../services/priority-calculator").ActionItem,
@@ -275,6 +293,7 @@ export default function ParityView() {
                 figmaAllComponents={figmaAllComponents}
                 onMatchChanged={rerunParity}
                 autoExpand={autoExpandComponent === component.componentName}
+                highlighted={highlightedComponent === component.componentName}
                 onAutoExpandDone={() => setAutoExpandComponent(null)}
               />
             ))}
@@ -803,6 +822,7 @@ function ComponentParityRow({
   figmaAllComponents,
   onMatchChanged,
   autoExpand,
+  highlighted,
   onAutoExpandDone,
 }: {
   component: ComponentParityResult;
@@ -810,6 +830,7 @@ function ComponentParityRow({
   figmaAllComponents: { name: string; id: string }[];
   onMatchChanged: () => void;
   autoExpand?: boolean;
+  highlighted?: boolean;
   onAutoExpandDone?: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -832,7 +853,9 @@ function ComponentParityRow({
   return (
     <div
       id={`component-row-${component.componentName}`}
-      className="hover:bg-gray-50 transition-colors"
+      className={`hover:bg-gray-50 transition-colors ${
+        highlighted ? "ring-2 ring-inset ring-indigo-400 bg-indigo-50" : ""
+      }`}
     >
       <button
         onClick={() => setExpanded(!expanded)}
