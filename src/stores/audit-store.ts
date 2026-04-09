@@ -8,6 +8,15 @@ import type { ComponentStatus } from "../services/db";
 import type { ScanResult } from "../types/component";
 import type { FigmaComponent } from "../types/figma";
 import type { ParityReport } from "../types/parity";
+import type { UsageImport, ComponentImpact } from "../types/usage";
+import {
+  parseUsageCSV,
+  validateAgainstComponents,
+} from "../services/usage-parser";
+import {
+  computeComponentImpacts,
+  computeOverallImpactScore,
+} from "../services/impact-calculator";
 
 interface AuditStore {
   isScanning: boolean;
@@ -19,10 +28,14 @@ interface AuditStore {
   figmaError: string | null;
   error: string | null;
   scanDelta: ScanDelta | null;
+  usageData: UsageImport | null;
+  impactScore: number | null;
+  impactComponents: ComponentImpact[];
   startScan: () => Promise<void>;
   hydrate: () => Promise<void>;
   clearResults: () => void;
   clearScanDelta: () => void;
+  importUsageData: (csvText: string) => Promise<{ warnings: string[] }>;
 }
 
 function getStoredFigmaCredentials(): {
@@ -41,7 +54,7 @@ function getStoredFigmaCredentials(): {
   return null;
 }
 
-export const useAuditStore = create<AuditStore>((set) => ({
+export const useAuditStore = create<AuditStore>((set, get) => ({
   isScanning: false,
   progress: 0,
   progressLabel: "",
@@ -51,6 +64,9 @@ export const useAuditStore = create<AuditStore>((set) => ({
   figmaError: null,
   error: null,
   scanDelta: null,
+  usageData: null,
+  impactScore: null,
+  impactComponents: [],
 
   startScan: async () => {
     set({
@@ -234,6 +250,53 @@ export const useAuditStore = create<AuditStore>((set) => ({
         // Parity check failed — results still shown without parity data
       }
     }
+
+    const latestUsage = await db.usageImports.orderBy("importedAt").last();
+    if (latestUsage) {
+      const latestHistory = await db.scanHistory.orderBy("timestamp").last();
+      const componentStatuses = latestHistory?.componentStatuses ?? {};
+      const impacts = computeComponentImpacts(latestUsage, componentStatuses);
+      const overallScore = computeOverallImpactScore(impacts);
+      set({
+        usageData: latestUsage,
+        impactScore: overallScore,
+        impactComponents: impacts,
+      });
+    }
+  },
+
+  importUsageData: async (csvText) => {
+    const parsed = parseUsageCSV(csvText);
+    const parityReport = get().parityReport;
+    const knownNames = [
+      ...(parityReport?.components.map((c) => c.componentName) ?? []),
+      ...(parityReport?.missingInFigma ?? []),
+    ];
+    const { valid, warnings } = validateAgainstComponents(parsed, knownNames);
+
+    const totalRepos = new Set(valid.flatMap((c) => c.repos.map((r) => r.name)))
+      .size;
+    const usageImport: UsageImport = {
+      importedAt: new Date().toISOString(),
+      totalRepos,
+      components: valid,
+    };
+
+    await db.usageImports.clear();
+    await db.usageImports.add(usageImport);
+
+    const latestHistory = await db.scanHistory.orderBy("timestamp").last();
+    const componentStatuses = latestHistory?.componentStatuses ?? {};
+    const impacts = computeComponentImpacts(usageImport, componentStatuses);
+    const overallScore = computeOverallImpactScore(impacts);
+
+    set({
+      usageData: usageImport,
+      impactScore: overallScore,
+      impactComponents: impacts,
+    });
+
+    return { warnings };
   },
 
   clearResults: () =>
