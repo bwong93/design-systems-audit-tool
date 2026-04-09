@@ -30,12 +30,16 @@ export default function Tokens() {
     const highlight = searchParams.get("highlight");
     if (!highlight) return;
     setHighlightedComponent(highlight);
-    setTimeout(() => {
+    const scrollTimer = setTimeout(() => {
       document
         .getElementById(`component-row-${highlight}`)
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 50);
-    setTimeout(() => setHighlightedComponent(null), 1500);
+    const clearTimer = setTimeout(() => setHighlightedComponent(null), 1500);
+    return () => {
+      clearTimeout(scrollTimer);
+      clearTimeout(clearTimer);
+    };
   }, [searchParams]);
 
   if (!results) {

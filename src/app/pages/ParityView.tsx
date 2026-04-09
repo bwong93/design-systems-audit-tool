@@ -100,12 +100,16 @@ export default function ParityView() {
     if (!highlight) return;
     setAutoExpandComponent(highlight);
     setHighlightedComponent(highlight);
-    setTimeout(() => {
+    const scrollTimer = setTimeout(() => {
       document
         .getElementById(`component-row-${highlight}`)
         ?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 50);
-    setTimeout(() => setHighlightedComponent(null), 1500);
+    const clearTimer = setTimeout(() => setHighlightedComponent(null), 1500);
+    return () => {
+      clearTimeout(scrollTimer);
+      clearTimeout(clearTimer);
+    };
   }, [searchParams]);
 
   const handleActionNavigate = (

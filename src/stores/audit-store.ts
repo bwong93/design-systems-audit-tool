@@ -132,10 +132,17 @@ export const useAuditStore = create<AuditStore>((set) => ({
             };
           }
           for (const name of parityReport.missingInFigma) {
+            const codeComp = results.components.find((c) => c.name === name);
+            const a11yPassed = codeComp
+              ? A11Y_KEYS.filter((k) => codeComp[k as keyof typeof codeComp])
+                  .length
+              : 0;
             componentStatuses[name] = {
               parityStatus: "missing-in-figma",
-              a11yScore: 0,
-              usesTokens: true,
+              a11yScore: Math.round((a11yPassed / A11Y_KEYS.length) * 100),
+              usesTokens: codeComp
+                ? codeComp.hardcodedColors.length === 0
+                : true,
             };
           }
 

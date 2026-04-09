@@ -8,8 +8,16 @@ export default function ScanToast() {
 
   if (!scanDelta) return null;
 
-  const improved = scanDelta.overallDelta > 0;
-  const worsened = scanDelta.overallDelta < 0;
+  const improved =
+    scanDelta.overallDelta > 0 &&
+    scanDelta.coverageDelta >= 0 &&
+    scanDelta.a11yDelta >= 0 &&
+    scanDelta.tokenDelta >= 0;
+  const worsened =
+    scanDelta.overallDelta < 0 ||
+    scanDelta.coverageDelta < 0 ||
+    scanDelta.a11yDelta < 0 ||
+    scanDelta.tokenDelta < 0;
   const noChange =
     scanDelta.overallDelta === 0 &&
     scanDelta.coverageDelta === 0 &&
