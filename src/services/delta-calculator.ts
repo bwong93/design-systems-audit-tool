@@ -8,6 +8,8 @@ export interface ScanDelta {
   tokenDelta: number;
   resolvedComponents: string[];
   newIssueComponents: string[];
+  newA11yIssueComponents: string[];
+  newTokenIssueComponents: string[];
   previousTimestamp: string;
 }
 
@@ -24,6 +26,8 @@ export function computeDelta(
 
   const resolvedComponents: string[] = [];
   const newIssueComponents: string[] = [];
+  const newA11yIssueComponents: string[] = [];
+  const newTokenIssueComponents: string[] = [];
 
   const allNames = new Set([
     ...Object.keys(current.componentStatuses),
@@ -31,19 +35,32 @@ export function computeDelta(
   ]);
 
   for (const name of allNames) {
-    const curr = current.componentStatuses[name]?.parityStatus;
-    const prev = previous.componentStatuses[name]?.parityStatus;
+    const curr = current.componentStatuses[name];
+    const prev = previous.componentStatuses[name];
 
-    if (prev && prev !== "aligned" && curr === "aligned") {
+    if (
+      prev &&
+      prev.parityStatus !== "aligned" &&
+      curr?.parityStatus === "aligned"
+    ) {
       resolvedComponents.push(name);
     }
 
     if (
-      (prev === "aligned" || prev === undefined) &&
+      (prev?.parityStatus === "aligned" || prev === undefined) &&
       curr &&
-      curr !== "aligned"
+      curr.parityStatus !== "aligned"
     ) {
       newIssueComponents.push(name);
+    }
+
+    if (curr && prev && curr.a11yScore < prev.a11yScore) {
+      newA11yIssueComponents.push(name);
+    }
+
+    const prevUsesTokens = prev?.usesTokens ?? true;
+    if (curr && !curr.usesTokens && prevUsesTokens) {
+      newTokenIssueComponents.push(name);
     }
   }
 
@@ -55,6 +72,8 @@ export function computeDelta(
     tokenDelta,
     resolvedComponents,
     newIssueComponents,
+    newA11yIssueComponents,
+    newTokenIssueComponents,
     previousTimestamp: previous.timestamp,
   };
 }
